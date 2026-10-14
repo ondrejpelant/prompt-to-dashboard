@@ -28,9 +28,9 @@ data/landing/<source>/load_id=<UTC timestamp>/
 ## Usage
 
 ```bash
-make land                       # contoso_100k (default)
-make land SOURCE=contoso_10k    # small variant used in CI
-uv run python -m ingestion.land_source contoso_100k --force
+uv run poe land                        # contoso_100k (default)
+uv run poe land contoso_10k            # small variant used in CI
+uv run poe land contoso_100k --force   # land again even if already present
 ```
 
 ## Adding a source

@@ -12,6 +12,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "poethepoet>=0.48.0",
     "pre-commit>=4.0",
     "ruff>=0.17",
 ]
@@ -19,6 +20,50 @@ dev = [
 [tool.uv]
 # Not a distributable package: modules are run from the repo root (python -m ...).
 package = false
+
+# ---------------------------------------------------------------------------
+# Developer tasks - the same commands on Windows, macOS, Linux and in CI.
+# Run from the repo root:  uv run poe <task>      (uv run poe  lists them all)
+# ---------------------------------------------------------------------------
+[tool.poe.tasks.env]
+help = "Create .env from .env.example if it does not exist yet"
+script = "tools.devtasks:ensure_env"
+
+[tool.poe.tasks.setup]
+help = "First-time setup: create .env and install the git pre-commit hooks"
+sequence = ["env", { cmd = "pre-commit install" }]
+
+[tool.poe.tasks.up]
+help = "Start Postgres and Metabase (Metabase on http://localhost:3000)"
+sequence = ["env", { cmd = "docker compose up -d" }]
+
+[tool.poe.tasks.down]
+help = "Stop the containers (data is kept)"
+cmd = "docker compose down"
+
+[tool.poe.tasks.reset]
+help = "Stop the containers and DELETE the Postgres volume with all its data"
+cmd = "docker compose down -v"
+
+[tool.poe.tasks.logs]
+help = "Follow container logs"
+cmd = "docker compose logs -f"
+
+[tool.poe.tasks.land]
+help = "Download a source into the landing zone (default contoso_100k; e.g. poe land contoso_10k --force)"
+cmd = "python -m ingestion.land_source"
+
+[tool.poe.tasks.lint]
+help = "Check code style"
+sequence = [{ cmd = "ruff check ." }, { cmd = "ruff format --check ." }]
+
+[tool.poe.tasks.format]
+help = "Auto-fix code style"
+sequence = [{ cmd = "ruff check --fix ." }, { cmd = "ruff format ." }]
+
+[tool.poe.tasks.check]
+help = "Run all pre-commit checks on every file"
+cmd = "pre-commit run --all-files"
 
 [tool.ruff]
 line-length = 100

@@ -59,23 +59,23 @@ Decisions and their trade-offs are recorded as [architecture decision records](d
   declared grain; CI fails on undocumented models.
 - **Contracts on marts** – breaking schema changes fail the build instead of breaking dashboards.
 - **Least privilege** – the BI tool and the agent read marts through a read-only role.
-- **Reproducibility** – data is never committed; `git clone` plus a few `make` targets rebuilds
+- **Reproducibility** – data is never committed; `git clone` plus a few `uv run poe` tasks rebuild
   everything from pinned sources.
 
 ## Getting started
 
-Prerequisites: [Docker](https://docs.docker.com/get-docker/), [uv](https://docs.astral.sh/uv/),
-`make` and `git`.
+Prerequisites: [Docker](https://docs.docker.com/get-docker/), [uv](https://docs.astral.sh/uv/)
+and `git`. The commands are identical on Windows, macOS and Linux.
 
 ```bash
 git clone https://github.com/ondrejpelant/prompt-to-dashboard.git
 cd prompt-to-dashboard
-make setup   # Python deps, git hooks, creates .env from .env.example
-make land    # downloads the dataset into data/landing/
-make up      # starts Postgres and Metabase on http://localhost:3000
+uv run poe setup   # installs Python and dependencies, creates .env, installs git hooks
+uv run poe land    # downloads the dataset into data/landing/
+uv run poe up      # starts Postgres and Metabase on http://localhost:3000
 ```
 
-Run `make` to list all targets.
+Run `uv run poe` to list all tasks. They are defined in [`pyproject.toml`](pyproject.toml).
 
 ## Repository layout
 
@@ -87,6 +87,7 @@ Run `make` to list all targets.
 ├── agent/            LLM agent and chat interface
 ├── eval/             benchmark questions and accuracy results
 ├── infra/            container init scripts
+├── tools/            helpers for the developer tasks
 └── docs/             ADRs and data profiling
 ```
 

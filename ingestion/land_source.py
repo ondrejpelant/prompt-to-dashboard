@@ -15,7 +15,10 @@ Guarantees:
   after every check passes, so a failed run never leaves a half-written load
 
 Usage:
-    python -m ingestion.land_source contoso_100k [--force] [--landing-root PATH]
+    uv run poe land [source] [--force] [--landing-root PATH]
+    python -m ingestion.land_source [source] [--force] [--landing-root PATH]
+
+The source defaults to contoso_100k.
 """
 
 import argparse
@@ -40,6 +43,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCES_FILE = REPO_ROOT / "ingestion" / "sources.yml"
 DEFAULT_LANDING_ROOT = REPO_ROOT / "data" / "landing"
+DEFAULT_SOURCE = "contoso_100k"
 MANIFEST_NAME = "_manifest.json"
 CHUNK_SIZE = 1024 * 1024
 USER_AGENT = "prompt-to-dashboard-ingestion/0.1"
@@ -245,7 +249,12 @@ def display_path(path: Path) -> str:
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Land a registered source into the landing zone.")
-    parser.add_argument("source", help="source name from ingestion/sources.yml")
+    parser.add_argument(
+        "source",
+        nargs="?",
+        default=DEFAULT_SOURCE,
+        help=f"source name from ingestion/sources.yml (default: {DEFAULT_SOURCE})",
+    )
     parser.add_argument("--force", action="store_true", help="land again even if already landed")
     parser.add_argument(
         "--landing-root",

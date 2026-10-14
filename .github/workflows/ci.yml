@@ -16,8 +16,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
+      - run: uv run poe lint
 
   smoke-test:
     # End-to-end check of what exists so far: the small dataset lands
@@ -29,8 +28,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
       - name: Land the small Contoso sample
-        run: uv run python -m ingestion.land_source contoso_10k
+        run: uv run poe land contoso_10k
       - name: Landing is idempotent (second run must skip)
-        run: uv run python -m ingestion.land_source contoso_10k | tee out.txt && grep -q "already landed" out.txt
+        run: uv run poe land contoso_10k | tee out.txt && grep -q "already landed" out.txt
       - name: Validate docker compose configuration
-        run: cp .env.example .env && docker compose config --quiet
+        run: uv run poe env && docker compose config --quiet

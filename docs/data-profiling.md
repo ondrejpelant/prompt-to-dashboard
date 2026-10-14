@@ -1,6 +1,6 @@
 # Data profiling: Contoso V2
 
-Profile of the `contoso_100k` source as landed by `make land`
+Profile of the `contoso_100k` source as landed by `uv run poe land`
 (archive sha256 `f05a4a90…944b`), done with DuckDB on 2026-10-14.
 Findings that matter downstream will be encoded as dbt tests in phase 3, so they are re-checked on
 every build rather than living only in this document.
