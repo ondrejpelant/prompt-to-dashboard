@@ -1,0 +1,44 @@
+name: prompt-to-dashboard
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Read by infra/postgres/init/01-create-metabase-db.sh on first start.
+      METABASE_DB_USER: ${METABASE_DB_USER}
+      METABASE_DB_PASSWORD: ${METABASE_DB_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  metabase:
+    image: metabase/metabase:${METABASE_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Metabase keeps its own metadata (dashboards, questions, users) in a
+      # dedicated Postgres database instead of the default embedded H2 file.
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: postgres
+      MB_DB_PORT: 5432
+      MB_DB_DBNAME: metabase
+      MB_DB_USER: ${METABASE_DB_USER}
+      MB_DB_PASS: ${METABASE_DB_PASSWORD}
+    ports:
+      - "${METABASE_PORT:-3000}:3000"
+
+volumes:
+  pgdata:

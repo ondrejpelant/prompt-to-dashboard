@@ -1,0 +1,39 @@
+# --- Data: never committed. The pipeline downloads everything it needs. ---
+data/
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# --- dbt ---
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.user.yml
+
+# --- Dagster ---
+.dagster/
+orchestration/.dagster_home/
+
+# --- Local databases and scratch ---
+*.duckdb
+*.duckdb.wal
+logs/
+*.log
+
+# --- Editors / OS ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

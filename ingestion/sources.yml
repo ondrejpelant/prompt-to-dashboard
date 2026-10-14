@@ -1,0 +1,38 @@
+# Source registry for the landing zone.
+#
+# Adding a new file-based source means adding an entry here, not writing new code.
+# Every source is pinned by checksum: if the publisher changes the file, landing
+# fails loudly instead of silently loading different data.
+
+sources:
+  contoso_100k:
+    description: >-
+      Contoso V2 synthetic retail dataset published by SQLBI.
+      About 93k orders and 224k order lines, May 2016 - December 2025.
+    homepage: https://github.com/sql-bi/Contoso-Data-Generator-V2
+    license: MIT
+    url: https://github.com/sql-bi/Contoso-Data-Generator-V2-Data/releases/download/ready-to-use-data/csv-100k.7z
+    sha256: f05a4a9010e6bb0f52845e7850cc114b5cd8df24dec623b475f74c702057944b
+    archive: 7z
+    format: csv
+    expected_files: &contoso_files
+      - currencyexchange.csv
+      - customer.csv
+      - date.csv
+      - orderrows.csv
+      - orders.csv
+      - product.csv
+      - sales.csv
+      - store.csv
+
+  contoso_10k:
+    description: >-
+      Small variant of the same dataset for CI and fast local runs.
+      About 1.7k orders and 4k order lines, May 2022 - March 2026.
+    homepage: https://github.com/sql-bi/Contoso-Data-Generator-V2
+    license: MIT
+    url: https://github.com/sql-bi/Contoso-Data-Generator-V2-Data/releases/download/ready-to-use-data/csv-10k.7z
+    sha256: 68b9d2bebd958ac8365b90e19937f7764289372e15b1006a3138bd2535871c67
+    archive: 7z
+    format: csv
+    expected_files: *contoso_files

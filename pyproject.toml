@@ -1,0 +1,28 @@
+[project]
+name = "prompt-to-dashboard"
+version = "0.1.0"
+description = "Layered data warehouse with governed metadata and an LLM agent that builds BI dashboards from natural-language prompts."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "py7zr>=0.22",
+    "pyyaml>=6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.0",
+    "ruff>=0.17",
+]
+
+[tool.uv]
+# Not a distributable package: modules are run from the repo root (python -m ...).
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "PTH"]
