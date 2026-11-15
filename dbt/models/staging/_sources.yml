@@ -1,0 +1,29 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Contoso V2 source files loaded by ingestion/load_raw.py exactly as delivered.
+      Every source column is text. Each row carries the audit columns _load_id,
+      _source_file and _loaded_at. A table can hold several loads; staging reads the
+      newest _load_id.
+    schema: raw
+    tables:
+      - name: currencyexchange
+        description: Daily exchange rate for a currency pair.
+      - name: customer
+        description: One row per customer.
+      - name: date
+        description: One row per calendar day.
+      - name: orderrows
+        description: One row per order line.
+      - name: orders
+        description: One row per order header.
+      - name: product
+        description: One row per product.
+      - name: sales
+        description: >
+          Order lines pre-joined with the order header and exchange rate. Used only as a
+          reconciliation oracle, never as the base of a model.
+      - name: store
+        description: One row per store version (StoreCode is reused after a restructuring).

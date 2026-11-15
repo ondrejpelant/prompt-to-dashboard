@@ -1,0 +1,394 @@
+version: 2
+
+models:
+  - name: stg_store
+    description: >
+      One row per store version, typed and renamed, from the newest raw load.
+      store_code identifies the store; a restructured store gets a new store_key with
+      the same store_code and a later open_date.
+    columns:
+      - name: store_key
+        description: Version key of the store; primary key of this table.
+        data_tests:
+          - unique
+          - not_null
+      - name: store_code
+        description: >
+          Business key of the store. Not unique - it is reused by the successor of a
+          restructured store. -1 for the online store.
+        data_tests:
+          - not_null
+      - name: geo_area_key
+        description: Key to a geography table that the source does not ship. Do not use.
+      - name: country_code
+        description: Two-letter country code; "--" for the online store.
+        data_tests:
+          - not_null
+      - name: country_name
+        description: Country name; "Online" for the online store.
+      - name: state
+        description: State or region; "Online" for the online store.
+      - name: open_date
+        description: Day the store version opened.
+        data_tests:
+          - not_null
+      - name: close_date
+        description: Day the store version closed; empty while it is open.
+      - name: description
+        description: Display name of the store.
+      - name: square_meters
+        description: Sales area in square meters; empty for the online store.
+      - name: status
+        description: >
+          Active, Closed or Restructured. Derived - the source leaves it empty for active
+          stores and for one closed store.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Active", "Closed", "Restructured"]
+      - name: _load_id
+        description: Landing load the row comes from.
+      - name: _loaded_at
+        description: When the row was loaded into raw.
+
+  - name: stg_customer
+    description: >
+      One row per registered customer, typed and renamed, from the newest raw load.
+      About half of the customers never placed an order, so "number of customers" must
+      say whether it means registered customers or customers who bought something.
+    columns:
+      - name: customer_key
+        description: Primary key of the customer.
+        data_tests:
+          - unique
+          - not_null
+      - name: geo_area_key
+        description: Key to a geography table that the source does not ship. Do not use.
+      - name: start_date
+        description: >
+          Start of a validity window whose meaning is not understood yet (open question
+          in docs/data-profiling.md). Do not use for analysis.
+      - name: end_date
+        description: >
+          End of a validity window whose meaning is not understood yet. Do not use for
+          analysis.
+      - name: continent
+        description: Continent the customer lives on.
+      - name: gender
+        description: Gender of the customer (male, female).
+      - name: title
+        description: Courtesy title (Mr., Ms., ...).
+      - name: given_name
+        description: First name.
+      - name: middle_initial
+        description: Initial of the middle name.
+      - name: surname
+        description: Last name.
+      - name: street_address
+        description: Street and house number.
+      - name: city
+        description: City the customer lives in.
+      - name: state_code
+        description: Short code of the state or region (NSW, CA, ...).
+      - name: state_name
+        description: Full name of the state or region.
+      - name: zip_code
+        description: Postal code. Text, because it can have leading zeros and letters.
+      - name: country_code
+        description: Two-letter code of the country the customer lives in.
+        data_tests:
+          - not_null
+      - name: country_name
+        description: Full name of the country the customer lives in.
+      - name: birth_date
+        description: Date of birth. Use it to compute the age at the order date.
+      - name: age_at_snapshot
+        description: >
+          Age frozen at 2020-12-31 or 2021-12-31, depending on the customer. Wrong for
+          any other date - do not use; compute the age from birth_date instead.
+      - name: occupation
+        description: Job title of the customer.
+      - name: company
+        description: Employer of the customer; empty for a few customers.
+      - name: vehicle
+        description: Car the customer drives (year, make, model).
+      - name: latitude
+        description: Latitude of the customer's address in decimal degrees.
+      - name: longitude
+        description: Longitude of the customer's address in decimal degrees.
+      - name: _load_id
+        description: Landing load the row comes from.
+      - name: _loaded_at
+        description: When the row was loaded into raw.
+
+  - name: stg_product
+    description: >
+      One row per product with its category and subcategory, typed and renamed, from
+      the newest raw load.
+    columns:
+      - name: product_key
+        description: Primary key of the product.
+        data_tests:
+          - unique
+          - not_null
+      - name: product_code
+        description: Business code of the product. Text, because it has leading zeros.
+        data_tests:
+          - unique
+          - not_null
+      - name: product_name
+        description: Full product name, including brand and color.
+      - name: manufacturer
+        description: Company that makes the product.
+      - name: brand
+        description: Brand the product is sold under.
+      - name: color
+        description: Color of the product.
+      - name: weight_unit
+        description: Unit of the weight column (ounces, pounds, grams); empty for some products.
+      - name: weight
+        description: Weight in weight_unit; empty for some products.
+      - name: unit_cost
+        description: Today's cost of one unit in USD. Historical cost is on the order line.
+      - name: list_price
+        description: >
+          Today's list price of one unit in USD, not the price at the time of sale.
+          Never compute revenue from it; revenue comes from the order lines.
+      - name: category_key
+        description: Key of the product category.
+        data_tests:
+          - not_null
+      - name: category_name
+        description: Name of the product category (8 categories).
+      - name: subcategory_key
+        description: Key of the product subcategory.
+        data_tests:
+          - not_null
+      - name: subcategory_name
+        description: Name of the product subcategory (32 subcategories).
+      - name: _load_id
+        description: Landing load the row comes from.
+      - name: _loaded_at
+        description: When the row was loaded into raw.
+
+  - name: stg_orders
+    description: >
+      One row per order header, typed and renamed, from the newest raw load.
+    columns:
+      - name: order_key
+        description: Primary key of the order.
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_key
+        description: Customer who placed the order.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_customer')
+                field: customer_key
+      - name: store_key
+        description: Store version that sold the order; 999999 is the online store.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_store')
+                field: store_key
+      - name: order_date
+        description: Day the order was placed.
+        data_tests:
+          - not_null
+      - name: delivery_date
+        description: >
+          Day the order was delivered. Physical stores always deliver on the order date,
+          so delivery time is meaningful only for the online store.
+      - name: currency_code
+        description: >
+          Currency of the customer. Prices on the order lines are NOT in this currency -
+          they are always in USD. The local amount is the USD amount times the
+          USD-to-currency_code rate on the order date.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["USD", "EUR", "CAD", "GBP", "AUD"]
+      - name: _load_id
+        description: Landing load the row comes from.
+      - name: _loaded_at
+        description: When the row was loaded into raw.
+
+  - name: stg_order_lines
+    description: >
+      One row per order line - the lowest grain of the sales process - typed and
+      renamed, from the newest raw load. All prices are in USD.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [order_key, line_number]
+    columns:
+      - name: order_key
+        description: Order the line belongs to.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_key
+      - name: line_number
+        description: Number of the line within the order, starting at 0.
+        data_tests:
+          - not_null
+      - name: product_key
+        description: Product sold on the line.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_product')
+                field: product_key
+      - name: quantity
+        description: Number of units sold.
+        data_tests:
+          - not_null
+      - name: unit_price
+        description: Price of one unit before discount, in USD.
+        data_tests:
+          - not_null
+      - name: net_price
+        description: Price of one unit after discount, in USD. Never higher than unit_price.
+        data_tests:
+          - not_null
+      - name: unit_cost
+        description: Cost of one unit at the time of sale, in USD.
+        data_tests:
+          - not_null
+      - name: _load_id
+        description: Landing load the row comes from.
+      - name: _loaded_at
+        description: When the row was loaded into raw.
+
+  - name: stg_currency_exchange
+    description: >
+      One row per day and currency pair, typed and renamed, from the newest raw load.
+      Covers all 25 pairs of USD, EUR, CAD, GBP and AUD, identity pairs included.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [rate_date, from_currency, to_currency]
+    columns:
+      - name: rate_date
+        description: Day the rate applies to.
+        data_tests:
+          - not_null
+      - name: from_currency
+        description: Currency being converted from.
+        data_tests:
+          - not_null
+      - name: to_currency
+        description: Currency being converted to.
+        data_tests:
+          - not_null
+      - name: exchange_rate
+        description: >
+          Units of to_currency for one unit of from_currency. Multiply an amount in
+          from_currency by it to get the amount in to_currency.
+        data_tests:
+          - not_null
+      - name: _load_id
+        description: Landing load the row comes from.
+      - name: _loaded_at
+        description: When the row was loaded into raw.
+
+  - name: stg_date
+    description: >
+      One row per calendar day as shipped by the source, typed and renamed, from the
+      newest raw load.
+    columns:
+      - name: date_day
+        description: The calendar day; primary key of this table.
+        data_tests:
+          - unique
+          - not_null
+      - name: date_key
+        description: The day as an integer in the form YYYYMMDD.
+        data_tests:
+          - unique
+          - not_null
+      - name: year
+        description: Calendar year.
+      - name: year_quarter
+        description: Quarter and year as a label, e.g. Q3-2018.
+      - name: year_quarter_number
+        description: Running number of the quarter; use it to sort year_quarter.
+      - name: quarter
+        description: Quarter of the year as a label, Q1 to Q4.
+      - name: year_month
+        description: Month and year as a label, e.g. September 2018.
+      - name: year_month_short
+        description: Short month and year as a label, e.g. Sep 2018.
+      - name: year_month_number
+        description: Running number of the month; use it to sort year_month.
+      - name: month_name
+        description: Name of the month, e.g. September.
+      - name: month_short_name
+        description: Short name of the month, e.g. Sep.
+      - name: month_number
+        description: Number of the month in the year, 1 to 12.
+      - name: day_of_week_name
+        description: Name of the day of the week, e.g. Thursday.
+      - name: day_of_week_short_name
+        description: Short name of the day of the week, e.g. Thu.
+      - name: day_of_week_number
+        description: Number of the day in the week, 1 (Sunday) to 7 (Saturday).
+      - name: is_working_day
+        description: True on working days, false on weekends and public holidays.
+      - name: working_day_number
+        description: Running number of the working day.
+      - name: _load_id
+        description: Landing load the row comes from.
+      - name: _loaded_at
+        description: When the row was loaded into raw.
+
+  - name: stg_sales
+    description: >
+      Order lines pre-joined with the order header and exchange rate, as shipped by the
+      source. Reconciliation oracle only: the core fact must match it row for row.
+      Never build a model or a dashboard on it.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [order_key, line_number]
+    columns:
+      - name: order_key
+        description: Order the line belongs to.
+      - name: line_number
+        description: Number of the line within the order, starting at 0.
+      - name: order_date
+        description: Day the order was placed.
+      - name: delivery_date
+        description: Day the order was delivered.
+      - name: customer_key
+        description: Customer who placed the order.
+      - name: store_key
+        description: Store version that sold the order.
+      - name: product_key
+        description: Product sold on the line.
+      - name: quantity
+        description: Number of units sold.
+      - name: unit_price
+        description: Price of one unit before discount, in USD.
+      - name: net_price
+        description: Price of one unit after discount, in USD.
+      - name: unit_cost
+        description: Cost of one unit at the time of sale, in USD.
+      - name: currency_code
+        description: Currency of the customer; prices are in USD regardless.
+      - name: exchange_rate
+        description: USD-to-currency_code rate on the order date.
+      - name: _load_id
+        description: Landing load the row comes from.
+      - name: _loaded_at
+        description: When the row was loaded into raw.

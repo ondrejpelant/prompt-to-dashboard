@@ -1,0 +1,13 @@
+name: prompt_to_dashboard
+version: "0.1.0"
+profile: prompt_to_dashboard
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+models:
+  prompt_to_dashboard:
+    staging:
+      +schema: staging
+      +materialized: view

@@ -1,0 +1,14 @@
+# Connection to the warehouse. No secrets here: everything comes from .env
+# through environment variables (uv run poe dbt ... loads .env for you).
+prompt_to_dashboard:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: "{{ env_var('POSTGRES_PORT') | as_number }}"
+      dbname: "{{ env_var('POSTGRES_DB') }}"
+      user: "{{ env_var('POSTGRES_USER') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD') }}"
+      schema: staging
+      threads: 4
