@@ -6,6 +6,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
+    "psycopg[binary]>=3.3.9",
     "py7zr>=0.22",
     "pyyaml>=6.0",
 ]
@@ -52,6 +53,11 @@ cmd = "docker compose logs -f"
 [tool.poe.tasks.land]
 help = "Download a source into the landing zone (default contoso_100k; e.g. poe land contoso_10k --force)"
 cmd = "python -m ingestion.land_source"
+
+[tool.poe.tasks.raw]
+help = "Load the newest landed load into the raw schema in Postgres"
+cmd = "python -m ingestion.load_raw"
+envfile = ".env"
 
 [tool.poe.tasks.lint]
 help = "Check code style"
