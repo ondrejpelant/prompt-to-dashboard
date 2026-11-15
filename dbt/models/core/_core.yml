@@ -1,0 +1,332 @@
+version: 2
+
+models:
+  - name: fct_order_lines
+    description: >
+      Sales fact at the lowest grain: one row per order line. Join it to dim_date on
+      order_date, to dim_customer on customer_key, to dim_store on store_key and to
+      dim_product on product_key. All *_usd amounts and unit values are in US dollars
+      whatever the order's currency_code; *_local amounts are in the customer's
+      currency. Revenue normally means net_amount_usd (after discount). An order is
+      one order_key; count orders with count(distinct order_key).
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [order_key, line_number]
+    columns:
+      - name: order_key
+        description: >
+          Order the line belongs to (degenerate dimension). Count orders with
+          count(distinct order_key).
+        data_tests:
+          - not_null
+      - name: line_number
+        description: Number of the line within the order, starting at 0.
+        data_tests:
+          - not_null
+      - name: order_date
+        description: Day the order was placed. Joins to dim_date.date_day.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: customer_key
+        description: Customer who placed the order. Joins to dim_customer.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customer')
+                field: customer_key
+      - name: store_key
+        description: >
+          Store version that sold the order, valid on the order date. Joins to
+          dim_store, which also holds the sales channel (Online or Store).
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_store')
+                field: store_key
+      - name: product_key
+        description: Product sold on the line. Joins to dim_product.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_key
+      - name: currency_code
+        description: >
+          Currency of the customer (USD, EUR, CAD, GBP, AUD). It does NOT say which
+          currency the *_usd amounts are in - those are always US dollars. Use the
+          *_local amounts for values in this currency.
+        data_tests:
+          - not_null
+      - name: delivery_date
+        description: >
+          Day the order was delivered. For physical stores it always equals order_date.
+      - name: delivery_days
+        description: >
+          Days from order to delivery. Filled only for online orders; empty for
+          physical stores, which hand the goods over on the order date. An average of
+          this column is therefore the average online delivery time.
+      - name: customer_age
+        description: Age of the customer in whole years on the order date.
+        data_tests:
+          - not_null
+      - name: quantity
+        description: Number of units sold on the line.
+        data_tests:
+          - not_null
+      - name: unit_price
+        description: Price of one unit before discount, in USD, at the time of sale.
+      - name: net_price
+        description: Price of one unit after discount, in USD, at the time of sale.
+      - name: unit_cost
+        description: Cost of one unit in USD at the time of sale.
+      - name: gross_amount_usd
+        description: Gross revenue of the line in USD, before discount (quantity x unit_price).
+        data_tests:
+          - not_null
+      - name: discount_amount_usd
+        description: >
+          Discount given on the line in USD (gross_amount_usd - net_amount_usd).
+          Discount rate = sum(discount_amount_usd) / sum(gross_amount_usd).
+        data_tests:
+          - not_null
+      - name: net_amount_usd
+        description: >
+          Net revenue of the line in USD, after discount (quantity x net_price). The
+          default meaning of "revenue" or "sales".
+        data_tests:
+          - not_null
+      - name: cost_amount_usd
+        description: Cost of the goods sold on the line in USD (quantity x unit_cost).
+        data_tests:
+          - not_null
+      - name: margin_amount_usd
+        description: >
+          Margin of the line in USD (net_amount_usd - cost_amount_usd).
+          Margin rate = sum(margin_amount_usd) / sum(net_amount_usd).
+        data_tests:
+          - not_null
+      - name: exchange_rate
+        description: >
+          Units of currency_code for one US dollar on the order date; 1 for USD orders.
+        data_tests:
+          - not_null
+      - name: gross_amount_local
+        description: >
+          Gross revenue of the line in the customer's currency (currency_code). Only
+          sum it within one currency.
+      - name: net_amount_local
+        description: >
+          Net revenue of the line in the customer's currency (currency_code). Only sum
+          it within one currency.
+
+  - name: dim_store
+    description: >
+      Stores with their history (slowly changing dimension type 2). One row per store
+      version: store_code identifies the store, store_key one version of it, valid
+      from open_date to close_date. A restructured store continues under the same
+      store_code with a new store_key. The fact points to the version valid on the
+      order date. Count stores with count(distinct store_code). The online store is
+      one row with sales_channel = Online.
+    columns:
+      - name: store_key
+        description: Key of the store version; primary key of this table.
+        data_tests:
+          - unique
+          - not_null
+      - name: store_code
+        description: >
+          Business key of the store, shared by all its versions. -1 for the online
+          store.
+        data_tests:
+          - not_null
+      - name: store_name
+        description: Display name of the store.
+      - name: sales_channel
+        description: Online for the online store, Store for physical stores.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Online", "Store"]
+      - name: country_code
+        description: >
+          Two-letter code of the country the store is in; empty for the online store,
+          which sells to all countries.
+      - name: country_name
+        description: Country the store is in; empty for the online store.
+      - name: state
+        description: State or region the store is in; empty for the online store.
+      - name: square_meters
+        description: Sales area in square meters; empty for the online store.
+      - name: status
+        description: >
+          Active (open), Closed (closed for good) or Restructured (closed and continued
+          by a later version with the same store_code).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Active", "Closed", "Restructured"]
+      - name: open_date
+        description: First day this store version was open (valid from).
+        data_tests:
+          - not_null
+      - name: close_date
+        description: Last day this store version was open (valid to); empty while it is open.
+      - name: version_number
+        description: Order of the version within its store_code, starting at 1.
+      - name: is_current_version
+        description: >
+          True for the latest version of each store. Filter on it to get one row per
+          store. The latest version can still be Closed.
+        data_tests:
+          - not_null
+
+  - name: dim_customer
+    description: >
+      One row per registered customer. About half of them never placed an order:
+      count rows here for registered customers, and count(distinct customer_key) in
+      fct_order_lines for customers who bought something. The customer's age is on
+      the fact (customer_age), because it depends on the order date.
+    columns:
+      - name: customer_key
+        description: Primary key of the customer.
+        data_tests:
+          - unique
+          - not_null
+      - name: full_name
+        description: First and last name of the customer.
+      - name: given_name
+        description: First name.
+      - name: surname
+        description: Last name.
+      - name: title
+        description: Courtesy title (Mr., Ms., ...).
+      - name: gender
+        description: Gender of the customer (male, female).
+      - name: birth_date
+        description: Date of birth.
+      - name: occupation
+        description: Job title of the customer.
+      - name: company
+        description: Employer of the customer; empty for a few customers.
+      - name: vehicle
+        description: Car the customer drives (year, make, model).
+      - name: street_address
+        description: Street and house number.
+      - name: city
+        description: City the customer lives in.
+      - name: zip_code
+        description: Postal code (text).
+      - name: state_code
+        description: Short code of the state or region the customer lives in.
+      - name: state_name
+        description: Full name of the state or region the customer lives in.
+      - name: country_code
+        description: Two-letter code of the country the customer lives in.
+        data_tests:
+          - not_null
+      - name: country_name
+        description: Country the customer lives in (8 countries).
+      - name: continent
+        description: Continent the customer lives on.
+      - name: latitude
+        description: Latitude of the customer's address in decimal degrees.
+      - name: longitude
+        description: Longitude of the customer's address in decimal degrees.
+
+  - name: dim_product
+    description: >
+      One row per product with its hierarchy: category, subcategory, product.
+      Prices and costs here are today's values; what a product actually sold for is
+      on fct_order_lines.
+    columns:
+      - name: product_key
+        description: Primary key of the product.
+        data_tests:
+          - unique
+          - not_null
+      - name: product_code
+        description: Business code of the product (text with leading zeros).
+        data_tests:
+          - unique
+          - not_null
+      - name: product_name
+        description: Full product name, including brand and color.
+      - name: brand
+        description: Brand the product is sold under (11 brands).
+      - name: manufacturer
+        description: Company that makes the product.
+      - name: color
+        description: Color of the product.
+      - name: category_key
+        description: Key of the product category.
+      - name: category_name
+        description: Product category, the top level of the hierarchy (8 categories).
+      - name: subcategory_key
+        description: Key of the product subcategory.
+      - name: subcategory_name
+        description: Product subcategory, the middle level of the hierarchy (32 subcategories).
+      - name: weight
+        description: Weight in weight_unit; empty for some products.
+      - name: weight_unit
+        description: Unit of weight (ounces, pounds, grams); empty for some products.
+      - name: current_unit_cost
+        description: >
+          Today's cost of one unit in USD. Not the cost at the time of sale - use
+          cost_amount_usd on the fact for that.
+      - name: current_list_price
+        description: >
+          Today's list price of one unit in USD. Not the price at the time of sale -
+          never multiply it by quantity to get revenue; use the amounts on the fact.
+
+  - name: dim_date
+    description: >
+      Calendar, one row per day (2016-01-01 to 2026-12-31). Joins to
+      fct_order_lines.order_date on date_day.
+    columns:
+      - name: date_day
+        description: The calendar day; primary key of this table.
+        data_tests:
+          - unique
+          - not_null
+      - name: date_key
+        description: The day as an integer in the form YYYYMMDD.
+      - name: year
+        description: Calendar year.
+      - name: quarter
+        description: Quarter of the year as a label, Q1 to Q4.
+      - name: year_quarter
+        description: Quarter and year as a label, e.g. Q3-2018. Sort by year_quarter_number.
+      - name: year_quarter_number
+        description: Running number of the quarter; sorts year_quarter chronologically.
+      - name: month_number
+        description: Number of the month in the year, 1 to 12; sorts month_name.
+      - name: month_name
+        description: Name of the month, e.g. September. Sort by month_number.
+      - name: month_short_name
+        description: Short name of the month, e.g. Sep. Sort by month_number.
+      - name: year_month
+        description: Month and year as a label, e.g. September 2018. Sort by year_month_number.
+      - name: year_month_short
+        description: Short month and year as a label, e.g. Sep 2018. Sort by year_month_number.
+      - name: year_month_number
+        description: Running number of the month; sorts year_month chronologically.
+      - name: day_of_week_number
+        description: Number of the day in the week, 1 (Sunday) to 7 (Saturday).
+      - name: day_of_week_name
+        description: Name of the day of the week, e.g. Thursday. Sort by day_of_week_number.
+      - name: day_of_week_short_name
+        description: Short name of the day of the week, e.g. Thu. Sort by day_of_week_number.
+      - name: is_working_day
+        description: True on working days, false on weekends and public holidays.
+      - name: working_day_number
+        description: Running number of the working day.
