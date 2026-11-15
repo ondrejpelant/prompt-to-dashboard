@@ -11,6 +11,9 @@ services:
       # Read by infra/postgres/init/01-create-metabase-db.sh on first start.
       METABASE_DB_USER: ${METABASE_DB_USER}
       METABASE_DB_PASSWORD: ${METABASE_DB_PASSWORD}
+      # Read by infra/postgres/init/02-create-bi-reader.sh on first start.
+      BI_DB_USER: ${BI_DB_USER}
+      BI_DB_PASSWORD: ${BI_DB_PASSWORD}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:

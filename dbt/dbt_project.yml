@@ -19,3 +19,10 @@ models:
     core:
       +schema: core
       +materialized: table
+      # The BI tool and the agent read the core schema through a read-only role.
+      # Tables are recreated on every build, so the grant is applied every time.
+      +grants:
+        select: ["{{ env_var('BI_DB_USER') }}"]
+
+on-run-end:
+  - "grant usage on schema core to {{ env_var('BI_DB_USER') }}"

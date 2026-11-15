@@ -73,6 +73,11 @@ cmd = "dbt build"
 cwd = "dbt"
 envfile = ".env"
 
+[tool.poe.tasks.metabase]
+help = "Connect Metabase to the warehouse and check that it sees all descriptions"
+cmd = "python -m bi.sync_metabase"
+envfile = ".env"
+
 [tool.poe.tasks.lint]
 help = "Check code style"
 sequence = [{ cmd = "ruff check ." }, { cmd = "ruff format --check ." }]
