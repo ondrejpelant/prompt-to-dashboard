@@ -8,6 +8,7 @@ requires-python = ">=3.12"
 dependencies = [
     "dbt-core>=1.10,<2",
     "dbt-postgres>=1.9,<2",
+    "google-genai>=3.3.0",
     "psycopg[binary]>=3.3.9",
     "py7zr>=0.22",
     "pyyaml>=6.0",
@@ -77,6 +78,13 @@ envfile = ".env"
 help = "Connect Metabase to the warehouse and check that it sees all descriptions"
 cmd = "python -m bi.sync_metabase"
 envfile = ".env"
+
+[tool.poe.tasks.ask]
+help = "Answer a question with a Metabase dashboard (e.g. poe ask \"net revenue by year\")"
+cmd = "python -m agent.ask"
+envfile = ".env"
+# Keeps accented characters readable when the output is piped on Windows
+env = { PYTHONUTF8 = "1" }
 
 [tool.poe.tasks.lint]
 help = "Check code style"
