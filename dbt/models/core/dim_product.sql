@@ -1,3 +1,6 @@
+-- Primary key in the database: checked by Postgres and read by Metabase
+{{ config(post_hook="alter table {{ this }} add primary key (product_key)") }}
+
 with products as (
 
     select * from {{ ref('stg_product') }}

@@ -1,3 +1,13 @@
+-- Keys in the database: checked by Postgres and read by Metabase, which uses the
+-- foreign keys to join the fact to its dimensions
+{{ config(post_hook=[
+    "alter table {{ this }} add primary key (order_key, line_number)",
+    "alter table {{ this }} add foreign key (order_date) references {{ ref('dim_date') }} (date_day)",
+    "alter table {{ this }} add foreign key (customer_key) references {{ ref('dim_customer') }} (customer_key)",
+    "alter table {{ this }} add foreign key (store_key) references {{ ref('dim_store') }} (store_key)",
+    "alter table {{ this }} add foreign key (product_key) references {{ ref('dim_product') }} (product_key)",
+]) }}
+
 with order_lines as (
 
     select * from {{ ref('stg_order_lines') }}

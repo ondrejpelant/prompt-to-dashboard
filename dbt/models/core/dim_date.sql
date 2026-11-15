@@ -1,3 +1,6 @@
+-- Primary key in the database: checked by Postgres and read by Metabase
+{{ config(post_hook="alter table {{ this }} add primary key (date_day)") }}
+
 with dates as (
 
     select * from {{ ref('stg_date') }}
