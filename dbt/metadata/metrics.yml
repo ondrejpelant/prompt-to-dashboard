@@ -1,0 +1,164 @@
+# Metric definitions - the single source of truth for how a number is calculated.
+#
+# Each metric is one SQL aggregate over one table in the core schema. It can be
+# grouped and filtered by any column of that table and of the dimensions joined to it:
+#
+#     select <dimension columns>, <expression>
+#     from core.<table>
+#     [join core.dim_... using (...)]
+#     group by <dimension columns>
+#
+# Ratios are written as sum / sum, so they stay correct at any grouping level.
+# Never average a ratio or a unit price over rows.
+
+metrics:
+  - name: net_revenue_usd
+    label: Net revenue (USD)
+    table: fct_order_lines
+    expression: sum(net_amount_usd)
+    unit: USD
+    description: >
+      Revenue after discount. This is what "revenue", "sales" or "turnover" means
+      unless gross revenue is asked for explicitly.
+
+  - name: gross_revenue_usd
+    label: Gross revenue (USD)
+    table: fct_order_lines
+    expression: sum(gross_amount_usd)
+    unit: USD
+    description: Revenue before discount, at the unit price valid at the time of sale.
+
+  - name: discount_usd
+    label: Discount (USD)
+    table: fct_order_lines
+    expression: sum(discount_amount_usd)
+    unit: USD
+    description: Discount given to customers; gross revenue minus net revenue.
+
+  - name: discount_rate
+    label: Discount rate
+    table: fct_order_lines
+    expression: sum(discount_amount_usd) / nullif(sum(gross_amount_usd), 0)
+    unit: ratio
+    description: Share of gross revenue given away as discount (0.059 = 5.9 %).
+
+  - name: cost_usd
+    label: Cost of goods sold (USD)
+    table: fct_order_lines
+    expression: sum(cost_amount_usd)
+    unit: USD
+    description: Cost of the units sold, at the unit cost valid at the time of sale.
+
+  - name: margin_usd
+    label: Margin (USD)
+    table: fct_order_lines
+    expression: sum(margin_amount_usd)
+    unit: USD
+    description: >
+      Net revenue minus cost of goods sold. This is what "margin" or "profit" means;
+      the data has no other costs.
+
+  - name: margin_rate
+    label: Margin rate
+    table: fct_order_lines
+    expression: sum(margin_amount_usd) / nullif(sum(net_amount_usd), 0)
+    unit: ratio
+    description: Margin as a share of net revenue (0.56 = 56 %).
+
+  - name: units_sold
+    label: Units sold
+    table: fct_order_lines
+    expression: sum(quantity)
+    unit: units
+    description: Number of product units sold.
+
+  - name: order_count
+    label: Orders
+    table: fct_order_lines
+    expression: count(distinct order_key)
+    unit: orders
+    description: >
+      Number of orders. The fact has one row per order line, so count(*) would count
+      lines, not orders.
+
+  - name: order_line_count
+    label: Order lines
+    table: fct_order_lines
+    expression: count(*)
+    unit: lines
+    description: Number of order lines (one product on one order).
+
+  - name: average_order_value_usd
+    label: Average order value (USD)
+    table: fct_order_lines
+    expression: sum(net_amount_usd) / nullif(count(distinct order_key), 0)
+    unit: USD
+    description: Net revenue per order.
+
+  - name: buying_customer_count
+    label: Buying customers
+    table: fct_order_lines
+    expression: count(distinct customer_key)
+    unit: customers
+    description: >
+      Customers who placed at least one order in the selected data. Not the same as
+      registered customers - about half of the registered customers never bought.
+
+  - name: net_revenue_per_customer_usd
+    label: Net revenue per buying customer (USD)
+    table: fct_order_lines
+    expression: sum(net_amount_usd) / nullif(count(distinct customer_key), 0)
+    unit: USD
+    description: Net revenue divided by the number of buying customers.
+
+  - name: average_online_delivery_days
+    label: Average online delivery time (days)
+    table: fct_order_lines
+    expression: avg(delivery_days) filter (where line_number = 0)
+    unit: days
+    description: >
+      Average days from order to delivery, per online order. Delivery time exists only
+      for the online store; physical stores hand the goods over on the order date and
+      are left out. The filter on line_number = 0 counts every order once instead of
+      once per line.
+
+  - name: net_revenue_local
+    label: Net revenue (customer's currency)
+    table: fct_order_lines
+    expression: sum(net_amount_local)
+    unit: currency_code
+    description: >
+      Net revenue in the customer's currency. Valid only when grouped or filtered by
+      currency_code - amounts in different currencies must never be added together.
+
+  - name: registered_customer_count
+    label: Registered customers
+    table: dim_customer
+    expression: count(*)
+    unit: customers
+    description: >
+      All customers in the customer register, whether they ever bought or not. For
+      customers who bought, use buying_customer_count.
+
+  - name: store_count
+    label: Stores
+    table: dim_store
+    expression: count(distinct store_code)
+    unit: stores
+    description: >
+      Number of stores, the online store included. dim_store has one row per store
+      version, so count(*) would count a restructured store several times.
+
+  - name: active_store_count
+    label: Active stores
+    table: dim_store
+    expression: count(distinct store_code) filter (where status = 'Active')
+    unit: stores
+    description: Stores that are open today, the online store included.
+
+  - name: product_count
+    label: Products
+    table: dim_product
+    expression: count(*)
+    unit: products
+    description: Number of products in the catalog, whether they were ever sold or not.

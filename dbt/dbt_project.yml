@@ -8,6 +8,11 @@ macro-paths: ["macros"]
 
 models:
   prompt_to_dashboard:
+    # Write model and column descriptions into Postgres as comments, so that
+    # Metabase and any SQL client see the same documentation as dbt.
+    +persist_docs:
+      relation: true
+      columns: true
     staging:
       +schema: staging
       +materialized: view

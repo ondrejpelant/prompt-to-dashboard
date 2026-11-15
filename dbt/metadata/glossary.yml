@@ -1,0 +1,151 @@
+# Business glossary - what the words in a question mean in this warehouse.
+#
+# "see" points to the tables, columns (table.column) and metrics (metrics.yml) that
+# implement the term. Table and column descriptions live in the dbt model YAML files.
+
+terms:
+  - term: Order
+    synonyms: [purchase, transaction]
+    definition: >
+      One purchase by one customer in one store on one day, identified by order_key.
+      An order has one or more order lines.
+    see: [fct_order_lines.order_key, order_count]
+
+  - term: Order line
+    synonyms: [order row, line item]
+    definition: >
+      One product on one order, with its quantity and prices. The lowest grain of the
+      sales data; fct_order_lines has one row per order line.
+    see: [fct_order_lines, order_line_count]
+
+  - term: Revenue
+    synonyms: [sales, turnover, net revenue, net sales]
+    definition: >
+      Money received for the goods sold, after discount, in US dollars. Always taken
+      from the order lines at the price valid at the time of sale. When a question
+      says only "revenue" or "sales", it means net revenue.
+    see: [net_revenue_usd]
+
+  - term: Gross revenue
+    synonyms: [gross sales, revenue before discount]
+    definition: Revenue before discount, in US dollars.
+    see: [gross_revenue_usd]
+
+  - term: Discount
+    synonyms: [rebate, price reduction]
+    definition: >
+      Difference between the unit price and the net price the customer paid. About
+      6 % of gross revenue on average.
+    see: [discount_usd, discount_rate]
+
+  - term: Cost
+    synonyms: [cost of goods sold, COGS]
+    definition: >
+      What the sold units cost the company, at the unit cost valid at the time of
+      sale. The data has no other costs (no rent, salaries or shipping).
+    see: [cost_usd]
+
+  - term: Margin
+    synonyms: [profit, gross margin, gross profit]
+    definition: Net revenue minus cost of goods sold.
+    see: [margin_usd, margin_rate]
+
+  - term: Base currency
+    synonyms: [reporting currency, USD]
+    definition: >
+      All prices, costs and *_usd amounts are in US dollars, whatever the currency of
+      the order. US dollars are the only currency in which amounts from different
+      orders can be added together.
+    see: [fct_order_lines.net_amount_usd]
+
+  - term: Customer's currency
+    synonyms: [local currency, order currency]
+    definition: >
+      Currency of the customer who placed the order (USD, EUR, CAD, GBP or AUD), in
+      currency_code. The *_local amounts are the US dollar amounts converted at the
+      rate of the order date. Add them up only within one currency.
+    see: [fct_order_lines.currency_code, fct_order_lines.exchange_rate, net_revenue_local]
+
+  - term: List price
+    synonyms: [catalog price, current price]
+    definition: >
+      Today's price of a product in the catalog. Not what the product sold for in the
+      past - historical prices are on the order lines. Never use it to compute
+      revenue.
+    see: [dim_product.current_list_price, fct_order_lines.unit_price]
+
+  - term: Customer
+    synonyms: [client, buyer]
+    definition: >
+      A person in the customer register. "Number of customers" is ambiguous: about
+      105 thousand customers are registered, but only about half of them ever bought
+      something. Say which one is meant.
+    see: [dim_customer, registered_customer_count, buying_customer_count]
+
+  - term: Customer age
+    synonyms: [age]
+    definition: >
+      Age of the customer in whole years on the day of the order, computed from the
+      date of birth. It changes from order to order, so it is on the fact.
+    see: [fct_order_lines.customer_age, dim_customer.birth_date]
+
+  - term: Customer location
+    synonyms: [customer country, market]
+    definition: >
+      Where the customer lives (country, state, city). For online orders this is the
+      only location there is, so "revenue by country" normally means the customer's
+      country. It can differ from the store's country only for online orders.
+    see: [dim_customer.country_name, dim_customer.state_name, dim_customer.city]
+
+  - term: Store
+    synonyms: [shop, branch, outlet]
+    definition: >
+      A place that sells, identified by store_code: 66 physical stores and one online
+      store. A store can have several versions over time (see Store version).
+    see: [dim_store.store_code, store_count, active_store_count]
+
+  - term: Store version
+    synonyms: [restructured store]
+    definition: >
+      One period in the life of a store, identified by store_key and valid from
+      open_date to close_date. When a store is restructured, it closes and later
+      reopens under the same store_code with a new store_key. Orders point to the
+      version valid on the order date; to report by store, group by store_code or by
+      the attributes of the store.
+    see: [dim_store.store_key, dim_store.is_current_version, dim_store.status]
+
+  - term: Sales channel
+    synonyms: [channel, online vs store]
+    definition: >
+      How the order was sold: Online (the online store, about 42 % of orders, selling
+      to all countries) or Store (a physical store, selling to customers in its own
+      country).
+    see: [dim_store.sales_channel]
+
+  - term: Delivery time
+    synonyms: [shipping time, lead time]
+    definition: >
+      Days from the order date to the delivery date. It exists only for online orders
+      (1 to 17 days); physical stores hand the goods over on the order date. An
+      "average delivery time" is always about online orders.
+    see: [fct_order_lines.delivery_days, average_online_delivery_days]
+
+  - term: Order date
+    synonyms: [date of sale, sale date]
+    definition: >
+      Day the order was placed. All time analysis (by year, quarter, month, weekday)
+      is by order date, through dim_date. Orders run from 2016-05-18 to 2025-12-31.
+    see: [fct_order_lines.order_date, dim_date]
+
+  - term: Working day
+    synonyms: [business day]
+    definition: A day that is neither a weekend nor a public holiday.
+    see: [dim_date.is_working_day]
+
+  - term: Product hierarchy
+    synonyms: [category, subcategory, product group]
+    definition: >
+      Products are grouped into 8 categories, each split into subcategories (32 in
+      total), each containing products. Brand and manufacturer are separate
+      attributes outside this hierarchy.
+    see: [dim_product.category_name, dim_product.subcategory_name, dim_product.brand]
