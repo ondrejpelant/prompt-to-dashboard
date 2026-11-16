@@ -22,6 +22,7 @@ import time
 from decimal import Decimal
 from pathlib import Path
 
+import httpx2
 import psycopg
 import yaml
 from google.genai import errors
@@ -68,6 +69,12 @@ def plan_with_retry(question: str, context: str, conn: psycopg.Connection):
             if error.code not in (429, 503) or attempt == RATE_LIMIT_RETRIES:
                 raise
             print(f"    model unavailable ({error.code}), waiting 60 s")
+            time.sleep(60)
+        except httpx2.RequestError as error:
+            # A dropped wifi connection or a DNS hiccup, not a problem with the request
+            if attempt == RATE_LIMIT_RETRIES:
+                raise
+            print(f"    network error ({error}), waiting 60 s")
             time.sleep(60)
 
 

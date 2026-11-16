@@ -106,7 +106,7 @@ class Plan(BaseModel):
 def generate(instruction: str, prompt: str, schema: type[BaseModel] | None = None) -> str:
     # System instructions and JSON schemas need the v1beta API; the SDK defaults to v1
     client = genai.Client(
-        api_key=os.environ["GEMINI_API_KEY"],
+        api_key=os.environ["PROMPT_TO_DASHBOARD_GEMINI_API_KEY"],
         http_options=types.HttpOptions(api_version="v1beta"),
     )
     config = types.GenerateContentConfig(system_instruction=instruction, temperature=0)
