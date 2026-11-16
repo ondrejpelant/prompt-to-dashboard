@@ -1,0 +1,143 @@
+# Evaluation set: business questions with a verified answer.
+#
+# reference_sql computes the correct answer on the core schema. The agent passes a
+# question when every number of the reference result appears in the results of its
+# cards (see eval/run_eval.py). "tests" says which trap the question sets.
+
+questions:
+  - id: total_revenue
+    question: What is our total revenue?
+    tests: Revenue without a qualifier means net revenue in USD, not gross.
+    reference_sql: select sum(net_amount_usd) from core.fct_order_lines
+
+  - id: gross_revenue_2023
+    question: What was the gross revenue in 2023?
+    tests: Gross revenue is before discount.
+    reference_sql: >
+      select sum(gross_amount_usd) from core.fct_order_lines
+      where order_date between '2023-01-01' and '2023-12-31'
+
+  - id: orders_2024
+    question: How many orders were placed in 2024?
+    tests: The fact has one row per order line; orders must be counted distinct.
+    reference_sql: >
+      select count(distinct order_key) from core.fct_order_lines
+      where order_date between '2024-01-01' and '2024-12-31'
+
+  - id: customers
+    question: How many customers do we have?
+    tests: Ambiguous - the answer must show registered and buying customers.
+    reference_sql: >
+      select count(*) from core.dim_customer
+      union all
+      select count(distinct customer_key) from core.fct_order_lines
+
+  - id: buying_customers_2025
+    question: How many customers bought something in 2025?
+    tests: Buying customers come from the fact, not from the customer register.
+    reference_sql: >
+      select count(distinct customer_key) from core.fct_order_lines
+      where order_date between '2025-01-01' and '2025-12-31'
+
+  - id: delivery_time
+    question: What is the average delivery time in days?
+    tests: Delivery time exists only for online orders; stores must not pull it to zero.
+    reference_sql: >
+      select avg(delivery_days) filter (where line_number = 0) from core.fct_order_lines
+
+  - id: slow_deliveries
+    question: How many orders took more than 7 days to deliver?
+    tests: Orders, not order lines.
+    reference_sql: >
+      select count(distinct order_key) from core.fct_order_lines where delivery_days > 7
+
+  - id: revenue_by_channel
+    question: What is the net revenue of the online store compared to physical stores?
+    tests: The sales channel is an attribute of the store dimension.
+    reference_sql: >
+      select sum(f.net_amount_usd)
+      from core.fct_order_lines f join core.dim_store s using (store_key)
+      group by s.sales_channel
+
+  - id: revenue_eur_orders_in_eur
+    question: What is the net revenue from orders of customers paying in euros, expressed in euros?
+    tests: Prices are in USD whatever the currency code; euros need the local amount.
+    reference_sql: >
+      select sum(net_amount_local) from core.fct_order_lines where currency_code = 'EUR'
+
+  - id: top_categories_margin_2025
+    question: Which 3 product categories had the highest margin in 2025, and how much was it?
+    tests: Margin is net revenue minus cost at the time of sale.
+    reference_sql: >
+      select sum(f.margin_amount_usd)
+      from core.fct_order_lines f join core.dim_product p using (product_key)
+      where f.order_date between '2025-01-01' and '2025-12-31'
+      group by p.category_name order by 1 desc limit 3
+
+  - id: discount_rate
+    question: What share of gross revenue do we give away in discounts?
+    tests: A ratio of sums, not an average of row ratios.
+    reference_sql: >
+      select sum(discount_amount_usd) / sum(gross_amount_usd) from core.fct_order_lines
+
+  - id: margin_rate_by_category
+    question: What is the margin rate of each product category?
+    tests: Margin rate is margin over net revenue, per category.
+    reference_sql: >
+      select sum(f.margin_amount_usd) / sum(f.net_amount_usd)
+      from core.fct_order_lines f join core.dim_product p using (product_key)
+      group by p.category_name
+
+  - id: stores
+    question: How many stores do we have?
+    tests: dim_store has one row per store version; stores are distinct store codes.
+    reference_sql: select count(distinct store_code) from core.dim_store
+
+  - id: active_stores
+    question: How many stores are open today?
+    tests: Active status, counted per store.
+    reference_sql: >
+      select count(distinct store_code) from core.dim_store where status = 'Active'
+
+  - id: revenue_by_year
+    question: How did net revenue develop year by year?
+    tests: Time analysis by order date.
+    reference_sql: >
+      select sum(net_amount_usd) from core.fct_order_lines
+      group by extract(year from order_date)
+
+  - id: average_order_value_2024
+    question: What was the average order value in 2024?
+    tests: Net revenue per order, not per order line.
+    reference_sql: >
+      select sum(net_amount_usd) / count(distinct order_key) from core.fct_order_lines
+      where order_date between '2024-01-01' and '2024-12-31'
+
+  - id: revenue_under_30
+    question: How much net revenue came from customers who were younger than 30 when they ordered?
+    tests: Age at the order date is on the fact; the customer table has no usable age.
+    reference_sql: select sum(net_amount_usd) from core.fct_order_lines where customer_age < 30
+
+  - id: top_country
+    question: Customers from which country generated the most net revenue, and how much?
+    tests: Country of the customer, not of the store (the online store has none).
+    reference_sql: >
+      select sum(f.net_amount_usd)
+      from core.fct_order_lines f join core.dim_customer c using (customer_key)
+      group by c.country_name order by 1 desc limit 1
+
+  - id: weekend_revenue
+    question: How much net revenue was made on working days and how much on other days?
+    tests: Working days come from the calendar, including public holidays.
+    reference_sql: >
+      select sum(f.net_amount_usd)
+      from core.fct_order_lines f join core.dim_date d on d.date_day = f.order_date
+      group by d.is_working_day
+
+  - id: top_brands_units
+    question: Which 5 brands sold the most units?
+    tests: Units are the sum of quantity, not the number of lines.
+    reference_sql: >
+      select sum(f.quantity)
+      from core.fct_order_lines f join core.dim_product p using (product_key)
+      group by p.brand order by 1 desc limit 5

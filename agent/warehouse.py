@@ -24,7 +24,7 @@ def connect() -> psycopg.Connection:
     )
 
 
-def describe_tables(conn: psycopg.Connection) -> str:
+def describe_tables(conn: psycopg.Connection, with_descriptions: bool = True) -> str:
     """Tables and columns with their descriptions, read from the Postgres comments."""
     rows = conn.execute(
         """
@@ -47,8 +47,10 @@ def describe_tables(conn: psycopg.Connection) -> str:
     for table, table_comment, column, data_type, column_comment in rows:
         if table != current_table:
             current_table = table
-            lines.append(f"\nTABLE {SCHEMA}.{table}\n{one_line(table_comment)}\nColumns:")
-        lines.append(f"- {column} ({data_type}): {one_line(column_comment)}")
+            description = f"\n{one_line(table_comment)}" if with_descriptions else ""
+            lines.append(f"\nTABLE {SCHEMA}.{table}{description}\nColumns:")
+        description = f": {one_line(column_comment)}" if with_descriptions else ""
+        lines.append(f"- {column} ({data_type}){description}")
     return "\n".join(lines).strip()
 
 
@@ -69,7 +71,14 @@ def describe_glossary() -> str:
     )
 
 
-def build_context(conn: psycopg.Connection) -> str:
+def build_context(conn: psycopg.Connection, with_metadata: bool = True) -> str:
+    """Everything the model knows about the warehouse.
+
+    Without metadata it gets only table names, column names and types - the baseline
+    the evaluation compares against.
+    """
+    if not with_metadata:
+        return f"# Tables\n\n{describe_tables(conn, with_descriptions=False)}"
     return (
         f"# Tables\n\n{describe_tables(conn)}\n\n"
         f"# Metrics\n\n{describe_metrics()}\n\n"

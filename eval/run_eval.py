@@ -1,0 +1,152 @@
+"""Measure how often the agent answers the evaluation questions correctly.
+
+For each question in eval/questions.yml the agent makes a plan (no dashboard is
+created), its SQL is run, and the numbers are compared with the reference answer.
+A question passes when every reference number appears somewhere in the results of the
+agent's cards, within a small tolerance for rounding. Labels and layout are not judged.
+
+Run it with and without metadata to see what the documentation is worth:
+
+    uv run poe eval                  # tables, metrics and glossary
+    uv run poe eval --no-metadata    # table and column names only
+    uv run poe eval --only stores    # one question
+    uv run poe eval --check          # only run the reference SQL, no model calls
+
+Results are written to eval/results/<mode>.json.
+"""
+
+import argparse
+import json
+import os
+import time
+from decimal import Decimal
+from pathlib import Path
+
+import psycopg
+import yaml
+from google.genai import errors
+
+from agent.planner import DEFAULT_MODEL, make_plan
+from agent.warehouse import build_context, connect
+
+EVAL_DIR = Path(__file__).resolve().parent
+RELATIVE_TOLERANCE = 0.005
+PAUSE_SECONDS = 6  # stay under the per-minute limit of the free tier
+RATE_LIMIT_RETRIES = 3
+
+
+class DailyQuotaExhausted(Exception):
+    """The free tier's requests-per-day limit is used up; no point in going on."""
+
+
+def numbers(conn: psycopg.Connection, sql: str) -> list[float]:
+    """All numeric values of a query result, whatever their column or row."""
+    rows = conn.execute(f"select * from (\n{sql.strip().rstrip(';')}\n) as q limit 1000").fetchall()
+    return [
+        float(value)
+        for row in rows
+        for value in row
+        if isinstance(value, int | float | Decimal) and not isinstance(value, bool)
+    ]
+
+
+def matches(expected: float, found: float) -> bool:
+    candidates = [expected]
+    if 0 < abs(expected) < 1:
+        candidates.append(expected * 100)  # a ratio may be shown as a percentage
+    return any(abs(found - c) <= RELATIVE_TOLERANCE * abs(c) for c in candidates)
+
+
+def plan_with_retry(question: str, context: str, conn: psycopg.Connection):
+    for attempt in range(RATE_LIMIT_RETRIES + 1):
+        try:
+            return make_plan(question, context, conn)
+        except errors.APIError as error:
+            if "per day" in str(error):
+                # Waiting a minute does not help against the daily quota
+                raise DailyQuotaExhausted from error
+            if error.code not in (429, 503) or attempt == RATE_LIMIT_RETRIES:
+                raise
+            print(f"    model unavailable ({error.code}), waiting 60 s")
+            time.sleep(60)
+
+
+def evaluate(question: dict, context: str, conn: psycopg.Connection) -> dict:
+    expected = numbers(conn, question["reference_sql"])
+    result = {"id": question["id"], "question": question["question"], "expected": expected}
+    try:
+        plan = plan_with_retry(question["question"], context, conn)
+    except SystemExit as error:
+        return {**result, "passed": False, "error": str(error)}
+    found = [value for card in plan.cards for value in numbers(conn, card.sql)]
+    missing = [e for e in expected if not any(matches(e, f) for f in found)]
+    return {
+        **result,
+        "passed": not missing,
+        "missing": missing,
+        "cards": [{"title": card.title, "sql": card.sql} for card in plan.cards],
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--no-metadata", action="store_true", help="names and types only")
+    parser.add_argument("--only", help="id of a single question to run")
+    parser.add_argument("--check", action="store_true", help="only run the reference SQL")
+    args = parser.parse_args()
+
+    questions = yaml.safe_load((EVAL_DIR / "questions.yml").read_text(encoding="utf-8"))[
+        "questions"
+    ]
+    if args.only:
+        questions = [q for q in questions if q["id"] == args.only]
+
+    with connect() as conn:
+        if args.check:
+            for question in questions:
+                print(f"{question['id']}: {numbers(conn, question['reference_sql'])}")
+            return
+
+        mode = "without-metadata" if args.no_metadata else "with-metadata"
+        model = os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
+        output = EVAL_DIR / "results" / f"{model}-{mode}.json"
+        # Results are saved after every question, so a run stopped by the daily
+        # quota continues where it ended the next time it is started.
+        results = []
+        if output.exists() and not args.only:
+            results = json.loads(output.read_text(encoding="utf-8"))["results"]
+        done = {result["id"] for result in results}
+        context = build_context(conn, with_metadata=not args.no_metadata)
+        for question in questions:
+            if question["id"] in done:
+                continue
+            try:
+                result = evaluate(question, context, conn)
+            except DailyQuotaExhausted:
+                raise SystemExit(
+                    f"Stopped at '{question['id']}' ({len(results)} done): the daily request "
+                    "limit of the model's free tier is used up. Run it again tomorrow to continue."
+                ) from None
+            results.append(result)
+            print(f"  {'PASS' if result['passed'] else 'FAIL'}  {question['id']}")
+            if not args.only:
+                passed = sum(r["passed"] for r in results)
+                summary = {
+                    "mode": mode,
+                    "model": model,
+                    "passed": passed,
+                    "total": len(results),
+                    "results": results,
+                }
+                output.parent.mkdir(exist_ok=True)
+                output.write_text(
+                    json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+                )
+            time.sleep(PAUSE_SECONDS)
+
+    passed = sum(result["passed"] for result in results)
+    print(f"{model}, {mode}: {passed}/{len(results)} questions answered correctly")
+
+
+if __name__ == "__main__":
+    main()

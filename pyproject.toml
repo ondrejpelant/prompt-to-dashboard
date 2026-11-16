@@ -86,6 +86,18 @@ envfile = ".env"
 # Keeps accented characters readable when the output is piped on Windows
 env = { PYTHONUTF8 = "1" }
 
+[tool.poe.tasks.chat]
+help = "Talk to the agent: answers in words plus one dashboard that follow-ups refine"
+cmd = "python -m agent.chat"
+envfile = ".env"
+env = { PYTHONUTF8 = "1" }
+
+[tool.poe.tasks.eval]
+help = "Measure the agent on the evaluation questions (add --no-metadata for the baseline)"
+cmd = "python -m eval.run_eval"
+envfile = ".env"
+env = { PYTHONUTF8 = "1" }
+
 [tool.poe.tasks.lint]
 help = "Check code style"
 sequence = [{ cmd = "ruff check ." }, { cmd = "ruff format --check ." }]

@@ -1,30 +1,23 @@
-"""Answer a business question with a dashboard in Metabase.
+"""Answer one business question with a dashboard in Metabase.
 
 Usage:
     uv run poe ask "monthly net revenue by product category in 2024"
+
+For a conversation with follow-up questions use `uv run poe chat`.
 """
 
 import sys
 
-from agent.dashboard import create_dashboard
-from agent.planner import make_plan
-from agent.warehouse import build_context, connect
+from agent.conversation import Conversation
+from agent.warehouse import connect
 
 
 def main() -> None:
     question = " ".join(sys.argv[1:]).strip()
     if not question:
         raise SystemExit('Usage: uv run poe ask "<question>"')
-
     with connect() as conn:
-        plan = make_plan(question, build_context(conn), conn)
-
-    print(f"{plan.title}\n{plan.description}")
-    if not plan.cards:
-        return
-    for card in plan.cards:
-        print(f"  [{card.chart}] {card.title}")
-    print(create_dashboard(plan, question))
+        print(Conversation(conn).ask(question))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,355 @@
+{
+  "mode": "with-metadata",
+  "model": "gemini-2.5-flash-lite",
+  "passed": 19,
+  "total": 20,
+  "results": [
+    {
+      "id": "total_revenue",
+      "question": "What is our total revenue?",
+      "expected": [
+        218814471.708604
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Total Revenue",
+          "sql": "SELECT sum(net_amount_usd) AS total_revenue FROM core.fct_order_lines"
+        }
+      ]
+    },
+    {
+      "id": "gross_revenue_2023",
+      "question": "What was the gross revenue in 2023?",
+      "expected": [
+        46597575.3811
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Gross revenue in 2023",
+          "sql": "SELECT sum(core.fct_order_lines.gross_amount_usd) FROM core.fct_order_lines INNER JOIN core.dim_date ON core.fct_order_lines.order_date = core.dim_date.date_day WHERE core.dim_date.year = 2023"
+        }
+      ]
+    },
+    {
+      "id": "orders_2024",
+      "question": "How many orders were placed in 2024?",
+      "expected": [
+        15899.0
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Orders in 2024",
+          "sql": "SELECT count(DISTINCT order_key) FROM core.fct_order_lines JOIN core.dim_date ON core.fct_order_lines.order_date = core.dim_date.date_day WHERE core.dim_date.year = 2024"
+        }
+      ]
+    },
+    {
+      "id": "customers",
+      "question": "How many customers do we have?",
+      "expected": [
+        104990.0,
+        52189.0
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Registered Customers",
+          "sql": "SELECT count(*) AS registered_customer_count FROM core.dim_customer"
+        },
+        {
+          "title": "Buying Customers",
+          "sql": "SELECT count(distinct customer_key) AS buying_customer_count FROM core.fct_order_lines"
+        }
+      ]
+    },
+    {
+      "id": "buying_customers_2025",
+      "question": "How many customers bought something in 2025?",
+      "expected": [
+        13834.0
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Customers who bought something in 2025",
+          "sql": "SELECT count(DISTINCT customer_key) FROM core.fct_order_lines JOIN core.dim_date ON core.fct_order_lines.order_date = core.dim_date.date_day WHERE core.dim_date.year = 2025"
+        }
+      ]
+    },
+    {
+      "id": "delivery_time",
+      "question": "What is the average delivery time in days?",
+      "expected": [
+        3.253541367275713
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Average online delivery time",
+          "sql": "SELECT avg(delivery_days) FROM core.fct_order_lines WHERE line_number = 0"
+        }
+      ]
+    },
+    {
+      "id": "slow_deliveries",
+      "question": "How many orders took more than 7 days to deliver?",
+      "expected": [
+        789.0
+      ],
+      "passed": false,
+      "missing": [
+        789.0
+      ],
+      "cards": [
+        {
+          "title": "Orders with more than 7 days delivery time",
+          "sql": "SELECT count(order_key) FROM core.fct_order_lines WHERE delivery_days > 7"
+        }
+      ]
+    },
+    {
+      "id": "revenue_by_channel",
+      "question": "What is the net revenue of the online store compared to physical stores?",
+      "expected": [
+        86790054.137917,
+        132024417.570687
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Net Revenue by Sales Channel",
+          "sql": "SELECT\n  CASE\n    WHEN s.sales_channel = 'Online' THEN 'Online Store'\n    ELSE 'Physical Stores'\n  END AS sales_channel,\n  sum(ol.net_amount_usd) AS net_revenue\nFROM core.fct_order_lines AS ol\nJOIN core.dim_store AS s\n  ON ol.store_key = s.store_key\nGROUP BY\n  s.sales_channel"
+        },
+        {
+          "title": "Total Net Revenue",
+          "sql": "SELECT\n  sum(net_amount_usd) AS total_net_revenue\nFROM core.fct_order_lines"
+        }
+      ]
+    },
+    {
+      "id": "revenue_eur_orders_in_eur",
+      "question": "What is the net revenue from orders of customers paying in euros, expressed in euros?",
+      "expected": [
+        43121581.872292064
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Net revenue in EUR",
+          "sql": "SELECT sum(core.fct_order_lines.net_amount_local) AS net_revenue_eur FROM core.fct_order_lines WHERE core.fct_order_lines.currency_code = 'EUR'"
+        }
+      ]
+    },
+    {
+      "id": "top_categories_margin_2025",
+      "question": "Which 3 product categories had the highest margin in 2025, and how much was it?",
+      "expected": [
+        5883604.1059,
+        3087103.0374,
+        2628024.8489
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Top 3 Product Categories by Margin in 2025",
+          "sql": "SELECT\n  dp.category_name,\n  sum(fol.net_amount_usd - fol.cost_amount_usd) AS margin_usd\nFROM core.fct_order_lines AS fol\nJOIN core.dim_product AS dp\n  ON fol.product_key = dp.product_key\nJOIN core.dim_date AS dd\n  ON fol.order_date = dd.date_day\nWHERE\n  dd.year = 2025\nGROUP BY\n  dp.category_name\nORDER BY\n  margin_usd DESC\nLIMIT 3"
+        }
+      ]
+    },
+    {
+      "id": "discount_rate",
+      "question": "What share of gross revenue do we give away in discounts?",
+      "expected": [
+        0.05927334268669042
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Share of Gross Revenue in Discounts",
+          "sql": "SELECT round(sum(core.fct_order_lines.discount_amount_usd) / nullif(sum(core.fct_order_lines.gross_amount_usd), 0)::numeric, 4) FROM core.fct_order_lines"
+        }
+      ]
+    },
+    {
+      "id": "margin_rate_by_category",
+      "question": "What is the margin rate of each product category?",
+      "expected": [
+        0.548218888956499,
+        0.5794078817467003,
+        0.5393645647696904,
+        0.5587664185673054,
+        0.5207057573864464,
+        0.5546325295892968,
+        0.5865701785311843,
+        0.5718766379694787
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Margin rate by product category",
+          "sql": "SELECT\n  dp.category_name,\n  sum(fct.margin_amount_usd) / sum(fct.net_amount_usd) AS margin_rate\nFROM core.fct_order_lines AS fct\nJOIN core.dim_product AS dp\n  ON fct.product_key = dp.product_key\nGROUP BY\n  dp.category_name\nORDER BY\n  margin_rate DESC\nLIMIT 10;"
+        }
+      ]
+    },
+    {
+      "id": "stores",
+      "question": "How many stores do we have?",
+      "expected": [
+        67.0
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Number of stores",
+          "sql": "SELECT count(distinct store_code) FROM core.dim_store"
+        }
+      ]
+    },
+    {
+      "id": "active_stores",
+      "question": "How many stores are open today?",
+      "expected": [
+        58.0
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Active Stores",
+          "sql": "SELECT count(core.dim_store.store_code) FROM core.dim_store WHERE core.dim_store.status = 'Active'"
+        }
+      ]
+    },
+    {
+      "id": "revenue_by_year",
+      "question": "How did net revenue develop year by year?",
+      "expected": [
+        5678106.348369,
+        10182548.69725,
+        13784590.073435,
+        25815538.810444,
+        17743747.779318,
+        16366682.386977,
+        24495022.64722,
+        43831054.455231,
+        31639690.92344,
+        29277489.58692
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Net revenue by year",
+          "sql": "SELECT\n  EXTRACT(YEAR FROM dd.date_day) AS order_year,\n  sum(fol.net_amount_usd) AS net_revenue_usd\nFROM core.fct_order_lines AS fol\nJOIN core.dim_date AS dd\n  ON fol.order_date = dd.date_day\nGROUP BY\n  order_year\nORDER BY\n  order_year"
+        }
+      ]
+    },
+    {
+      "id": "average_order_value_2024",
+      "question": "What was the average order value in 2024?",
+      "expected": [
+        1990.042828067174
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Average order value in 2024",
+          "sql": "SELECT avg_order_value_usd FROM\n  (\n    SELECT\n      sum(net_amount_usd) / count(distinct order_key) AS avg_order_value_usd\n    FROM\n      core.fct_order_lines\n    INNER JOIN core.dim_date ON core.fct_order_lines.order_date = core.dim_date.date_day\n    WHERE\n      core.dim_date.year = 2024\n  ) AS sub"
+        }
+      ]
+    },
+    {
+      "id": "revenue_under_30",
+      "question": "How much net revenue came from customers who were younger than 30 when they ordered?",
+      "expected": [
+        32805288.56421
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Net revenue from customers younger than 30",
+          "sql": "SELECT sum(core.fct_order_lines.net_amount_usd) FROM core.fct_order_lines WHERE core.fct_order_lines.customer_age < 30"
+        }
+      ]
+    },
+    {
+      "id": "top_country",
+      "question": "Customers from which country generated the most net revenue, and how much?",
+      "expected": [
+        111862187.586711
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Net revenue by customer country",
+          "sql": "SELECT\n  dc.country_name,\n  sum(fct_order_lines.net_amount_usd) AS net_revenue_usd\nFROM\n  core.fct_order_lines\nJOIN\n  core.dim_customer AS dc\nON\n  fct_order_lines.customer_key = dc.customer_key\nGROUP BY\n  dc.country_name\nORDER BY\n  net_revenue_usd DESC\nLIMIT 10"
+        },
+        {
+          "title": "Top customer country by net revenue",
+          "sql": "SELECT\n  dc.country_name,\n  sum(fct_order_lines.net_amount_usd) AS net_revenue_usd\nFROM\n  core.fct_order_lines\nJOIN\n  core.dim_customer AS dc\nON\n  fct_order_lines.customer_key = dc.customer_key\nGROUP BY\n  dc.country_name\nORDER BY\n  net_revenue_usd DESC\nLIMIT 1"
+        }
+      ]
+    },
+    {
+      "id": "weekend_revenue",
+      "question": "How much net revenue was made on working days and how much on other days?",
+      "expected": [
+        61627644.321662,
+        157186827.386942
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Net Revenue by Day Type",
+          "sql": "SELECT\n  CASE\n    WHEN d.is_working_day THEN 'Working Day'\n    ELSE 'Other Day'\n  END AS day_type,\n  sum(ol.net_amount_usd) AS net_revenue\nFROM core.fct_order_lines AS ol\nJOIN core.dim_date AS d\n  ON ol.order_date = d.date_day\nGROUP BY\n  d.is_working_day"
+        },
+        {
+          "title": "Net Revenue on Working Days",
+          "sql": "SELECT\n  sum(ol.net_amount_usd)\nFROM core.fct_order_lines AS ol\nJOIN core.dim_date AS d\n  ON ol.order_date = d.date_day\nWHERE\n  d.is_working_day"
+        },
+        {
+          "title": "Net Revenue on Other Days",
+          "sql": "SELECT\n  sum(ol.net_amount_usd)\nFROM core.fct_order_lines AS ol\nJOIN core.dim_date AS d\n  ON ol.order_date = d.date_day\nWHERE\n  NOT d.is_working_day"
+        }
+      ]
+    },
+    {
+      "id": "top_brands_units",
+      "question": "Which 5 brands sold the most units?",
+      "expected": [
+        188032.0,
+        101085.0,
+        94576.0,
+        74002.0,
+        70797.0
+      ],
+      "passed": true,
+      "missing": [],
+      "cards": [
+        {
+          "title": "Top 5 Brands by Units Sold",
+          "sql": "SELECT\n  d.brand,\n  sum(ol.quantity) AS units_sold\nFROM core.fct_order_lines AS ol\nJOIN core.dim_product AS d\n  ON ol.product_key = d.product_key\nGROUP BY\n  d.brand\nORDER BY\n  units_sold DESC\nLIMIT 5"
+        }
+      ]
+    }
+  ]
+}
