@@ -11,3 +11,4 @@ supersede it with a new one.
 | [0003](0003-raw-load-psycopg-copy.md) | Use psycopg and COPY for the raw load | Accepted |
 | [0004](0004-custom-agent-with-gemini.md) | Build a custom agent that writes SQL and creates Metabase dashboards | Accepted |
 | [0005](0005-conversational-agent.md) | Make the agent a conversation that answers in words and one dashboard | Accepted |
+| [0006](0006-embedded-dashboard-streamlit-ui.md) | Embed the dashboard via a Metabase public link, built with Streamlit | Accepted |

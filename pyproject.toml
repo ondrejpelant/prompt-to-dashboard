@@ -12,6 +12,7 @@ dependencies = [
     "psycopg[binary]>=3.3.9",
     "py7zr>=0.22",
     "pyyaml>=6.0",
+    "streamlit>=1.67.0",
 ]
 
 [dependency-groups]
@@ -91,6 +92,14 @@ help = "Talk to the agent: answers in words plus one dashboard that follow-ups r
 cmd = "python -m agent.chat"
 envfile = ".env"
 env = { PYTHONUTF8 = "1" }
+
+[tool.poe.tasks.app]
+help = "Open the chat UI in the browser: answers plus the dashboard side by side"
+cmd = "streamlit run agent/app.py"
+envfile = ".env"
+# PYTHONPATH: "streamlit run" does not add the repo root to sys.path the way
+# "python -m" does, so the agent/bi packages would not be importable without it.
+env = { PYTHONUTF8 = "1", PYTHONPATH = "." }
 
 [tool.poe.tasks.eval]
 help = "Measure the agent on the evaluation questions (add --no-metadata for the baseline)"

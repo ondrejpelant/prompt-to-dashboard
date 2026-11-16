@@ -17,7 +17,10 @@ def main() -> None:
     if not question:
         raise SystemExit('Usage: uv run poe ask "<question>"')
     with connect() as conn:
-        print(Conversation(conn).ask(question))
+        conversation = Conversation(conn)
+        print(conversation.ask(question))
+        if conversation.dashboard:
+            print(f"\nDashboard: {conversation.dashboard.url}")
 
 
 if __name__ == "__main__":

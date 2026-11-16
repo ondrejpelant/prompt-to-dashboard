@@ -25,7 +25,11 @@ class Conversation:
         return "\n\n".join(lines)
 
     def ask(self, question: str) -> str:
-        """Answer one message; returns the text to show to the user."""
+        """Answer one message; returns the words to show, UI-agnostic.
+
+        When the action is "answer", self.dashboard is created or updated as a side
+        effect; the caller decides how to present it (a link, an embedded iframe).
+        """
         history = self.history()
         plan = make_plan(question, self.context, self.conn, history)
         if plan.action != "answer":
@@ -36,4 +40,4 @@ class Conversation:
         self.dashboard = save_dashboard(plan, answer, question, self.dashboard)
         self.plan = plan
         self.turns.append((question, answer))
-        return f"{answer}\n\nDashboard: {self.dashboard.url}"
+        return answer

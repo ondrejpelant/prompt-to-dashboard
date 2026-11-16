@@ -22,7 +22,11 @@ def main() -> None:
                 break
             if not question:
                 break
-            print(f"\n{conversation.ask(question)}\n")
+            answer = conversation.ask(question)
+            dashboard_line = (
+                f"\nDashboard: {conversation.dashboard.url}" if conversation.dashboard else ""
+            )
+            print(f"\n{answer}{dashboard_line}\n")
 
 
 if __name__ == "__main__":

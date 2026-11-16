@@ -30,7 +30,7 @@ WAREHOUSE_PORT = 5432
 SYNC_TIMEOUT_SECONDS = 180
 
 
-def api(method: str, path: str, body: dict | None = None) -> dict:
+def api(method: str, path: str, body: dict | None = None) -> dict | None:
     request = urllib.request.Request(
         f"http://localhost:{os.environ['METABASE_PORT']}/api{path}",
         method=method,
@@ -38,7 +38,9 @@ def api(method: str, path: str, body: dict | None = None) -> dict:
         headers={"x-api-key": os.environ["METABASE_API_KEY"], "Content-Type": "application/json"},
     )
     with urllib.request.urlopen(request, timeout=60) as response:
-        return json.load(response)
+        # A successful PUT (e.g. changing a setting) answers 204 with an empty body
+        text = response.read()
+        return json.loads(text) if text else None
 
 
 def ensure_database() -> int:

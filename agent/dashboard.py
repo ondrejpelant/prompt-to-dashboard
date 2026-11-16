@@ -15,11 +15,18 @@ class Dashboard:
     """The dashboard of one conversation; follow-ups rewrite it instead of adding new ones."""
 
     id: int
+    public_uuid: str
     card_ids: list[int] = field(default_factory=list)
 
     @property
     def url(self) -> str:
+        """The admin view: edit the dashboard in Metabase, signed in."""
         return f"http://localhost:{os.environ['METABASE_PORT']}/dashboard/{self.id}"
+
+    @property
+    def embed_url(self) -> str:
+        """The public view: no sign-in, safe to put in an iframe."""
+        return f"http://localhost:{os.environ['METABASE_PORT']}/public/dashboard/{self.public_uuid}"
 
 
 def warehouse_database_id() -> int:
@@ -27,6 +34,16 @@ def warehouse_database_id() -> int:
         if database["name"] == DATABASE_NAME:
             return database["id"]
     raise SystemExit(f"Metabase has no database '{DATABASE_NAME}'; run 'uv run poe metabase'")
+
+
+def ensure_public_link(dashboard_id: int) -> str:
+    """A public, unauthenticated link to the dashboard, for the embedded iframe.
+
+    Only this app's own dashboards are ever made public (never staging/raw, and
+    never anything with real row-level data beyond what the cards already show).
+    """
+    api("PUT", "/setting/enable-public-sharing", {"value": True})
+    return api("POST", f"/dashboard/{dashboard_id}/public_link")["uuid"]
 
 
 def ensure_collection() -> int:
@@ -89,7 +106,7 @@ def save_dashboard(
     details = {"name": plan.title, "description": f"{plan.description}\n\nRequest: {question}"}
     if dashboard is None:
         created = api("POST", "/dashboard", {**details, "collection_id": collection_id})
-        dashboard = Dashboard(id=created["id"])
+        dashboard = Dashboard(id=created["id"], public_uuid=ensure_public_link(created["id"]))
     old_card_ids = dashboard.card_ids
 
     answer_box = text_dashcard(answer)
