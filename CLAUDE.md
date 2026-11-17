@@ -51,7 +51,7 @@ Details and what's still open: `notes/Stav a další kroky.md`.
 | BI | Metabase open source in Docker, read-only role `bi_reader` |
 | Agent | Custom agent on the Gemini API (`agent/`); ADR-0004/0005/0006 |
 | Orchestration | Dagster asset graph, no schedule (`orchestration/`); ADR-0008 |
-| Quality | ruff, pre-commit, GitHub Actions (`.github/workflows/ci.yml`) |
+| Quality | ruff, pytest (`tests/`, no live DB or model), pre-commit, GitHub Actions |
 
 Folders: `ingestion/`, `dbt/`, `orchestration/`, `bi/`, `agent/`, `eval/`, `infra/`,
 `tools/`, `docs/` (English documentation, ADRs), `notes/` (Czech personal notes).

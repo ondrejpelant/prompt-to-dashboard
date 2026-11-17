@@ -57,7 +57,8 @@ Everything runs locally and costs nothing.
 | BI | Metabase (open source) | ✅ container, read-only role |
 | LLM agent | Gemini API ([ADR-0004](docs/adr/0004-custom-agent-with-gemini.md)–[0006](docs/adr/0006-embedded-dashboard-streamlit-ui.md)) | ✅ chat UI, `uv run poe app` |
 | Evaluation | 20 questions, reference SQL, with/without metadata | ✅ `uv run poe eval` |
-| CI | GitHub Actions | ✅ lint, landing, raw load, dbt build, Metabase sync (no LLM calls) |
+| Quality | ruff, pytest (`agent/dashboard.py`, `agent/app.py`, no live DB or model), pre-commit | ✅ |
+| CI | GitHub Actions | ✅ lint, tests, landing, raw load, dbt build, Metabase sync (no LLM calls) |
 
 Decisions and their trade-offs are recorded as [architecture decision records](docs/adr/).
 

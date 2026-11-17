@@ -17,6 +17,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
       - run: uv run poe lint
+      - run: uv run poe test
 
   smoke-test:
     # End-to-end check of what exists so far: the small dataset lands

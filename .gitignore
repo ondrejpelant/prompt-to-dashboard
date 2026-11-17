@@ -24,6 +24,7 @@ dbt/.user.yml
 # --- Dagster ---
 .dagster/
 orchestration/.dagster_home/
+.tmp_dagster_home_*/
 
 # --- Local databases and scratch ---
 *.duckdb

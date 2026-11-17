@@ -5,7 +5,6 @@ Usage:
 """
 
 import streamlit as st
-from streamlit.components.v1 import iframe
 
 from agent.conversation import Conversation
 from agent.warehouse import connect
@@ -26,9 +25,10 @@ def render_dashboard(conversation: Conversation) -> None:
         st.info("Ask a question to build the first dashboard.")
         return
     st.link_button("Open in Metabase", dashboard.url)
-    # A query string that changes on every turn forces the browser to reload the
-    # iframe, so a follow-up's new cards actually show up.
-    iframe(f"{dashboard.embed_url}?turn={len(conversation.turns)}", height=800, scrolling=True)
+    # embed_url() signs a fresh token every call, so the iframe src is never the same
+    # string twice - which is exactly what makes the browser reload it after a
+    # follow-up changes the dashboard's cards.
+    st.iframe(dashboard.embed_url(), height=800)
 
 
 def main() -> None:

@@ -14,3 +14,4 @@ supersede it with a new one.
 | [0006](0006-embedded-dashboard-streamlit-ui.md) | Embed the dashboard via a Metabase public link, built with Streamlit | Accepted |
 | [0007](0007-skip-marts-layer.md) | Skip the `marts` layer; Metabase and the agent read `core` directly | Accepted |
 | [0008](0008-orchestration-with-dagster.md) | Use Dagster for orchestration, as an asset graph with no schedule | Accepted |
+| [0009](0009-signed-embedding.md) | Replace the public dashboard link with signed, time-limited embedding | Accepted |

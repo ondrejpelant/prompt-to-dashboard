@@ -1,13 +1,18 @@
 """Show a plan in Metabase: the answer as text on top, one native SQL question per card."""
 
 import os
+import secrets
+import time
 from dataclasses import dataclass, field
+
+import jwt
 
 from agent.planner import Card, Plan
 from bi.sync_metabase import DATABASE_NAME, api
 
 COLLECTION_NAME = "Agent dashboards"
 GRID_WIDTH = 24
+EMBED_TOKEN_LIFETIME_SECONDS = 600
 
 
 @dataclass
@@ -15,7 +20,6 @@ class Dashboard:
     """The dashboard of one conversation; follow-ups rewrite it instead of adding new ones."""
 
     id: int
-    public_uuid: str
     card_ids: list[int] = field(default_factory=list)
 
     @property
@@ -23,10 +27,19 @@ class Dashboard:
         """The admin view: edit the dashboard in Metabase, signed in."""
         return f"http://localhost:{os.environ['METABASE_PORT']}/dashboard/{self.id}"
 
-    @property
     def embed_url(self) -> str:
-        """The public view: no sign-in, safe to put in an iframe."""
-        return f"http://localhost:{os.environ['METABASE_PORT']}/public/dashboard/{self.public_uuid}"
+        """A signed, time-limited view for the embedded iframe - not a standing public
+        link: the token expires and is tied to this one dashboard, nothing else."""
+        token = jwt.encode(
+            {
+                "resource": {"dashboard": self.id},
+                "params": {},
+                "exp": round(time.time()) + EMBED_TOKEN_LIFETIME_SECONDS,
+            },
+            ensure_embedding_secret(),
+            algorithm="HS256",
+        )
+        return f"http://localhost:{os.environ['METABASE_PORT']}/embed/dashboard/{token}"
 
 
 def warehouse_database_id() -> int:
@@ -36,14 +49,24 @@ def warehouse_database_id() -> int:
     raise SystemExit(f"Metabase has no database '{DATABASE_NAME}'; run 'uv run poe metabase'")
 
 
-def ensure_public_link(dashboard_id: int) -> str:
-    """A public, unauthenticated link to the dashboard, for the embedded iframe.
+_embedding_secret: str | None = None
 
-    Only this app's own dashboards are ever made public (never staging/raw, and
-    never anything with real row-level data beyond what the cards already show).
+
+def ensure_embedding_secret() -> str:
+    """The key Metabase signs/checks embed tokens with - generated once, then reused.
+
+    Unlike a public link, a dashboard embedded this way has no URL that works on its
+    own: every view needs a token signed with this secret, and that token expires.
     """
-    api("PUT", "/setting/enable-public-sharing", {"value": True})
-    return api("POST", f"/dashboard/{dashboard_id}/public_link")["uuid"]
+    global _embedding_secret
+    if _embedding_secret is None:
+        secret = api("GET", "/setting/embedding-secret-key")
+        if not secret:
+            secret = secrets.token_hex(32)
+            api("PUT", "/setting/embedding-secret-key", {"value": secret})
+        api("PUT", "/setting/enable-embedding-static", {"value": True})
+        _embedding_secret = secret
+    return _embedding_secret
 
 
 def ensure_collection() -> int:
@@ -103,10 +126,15 @@ def save_dashboard(
     """Create the conversation's dashboard, or replace its content on a follow-up."""
     database_id = warehouse_database_id()
     collection_id = ensure_collection()
-    details = {"name": plan.title, "description": f"{plan.description}\n\nRequest: {question}"}
+    details = {
+        "name": plan.title,
+        "description": f"{plan.description}\n\nRequest: {question}",
+        "enable_embedding": True,
+    }
     if dashboard is None:
+        ensure_embedding_secret()
         created = api("POST", "/dashboard", {**details, "collection_id": collection_id})
-        dashboard = Dashboard(id=created["id"], public_uuid=ensure_public_link(created["id"]))
+        dashboard = Dashboard(id=created["id"])
     old_card_ids = dashboard.card_ids
 
     answer_box = text_dashcard(answer)
