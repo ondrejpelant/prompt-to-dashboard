@@ -1,13 +1,15 @@
+import argparse
 import csv
 import json
 import os
+import sys
 from pathlib import Path
 
 import psycopg
 from psycopg import sql
 
 LANDING_ROOT = Path(__file__).resolve().parent.parent / "data" / "landing"
-SOURCE = "contoso_100k"
+DEFAULT_SOURCE = "contoso_100k"
 RAW_SCHEMA = "raw"
 
 
@@ -83,8 +85,20 @@ def count_rows(conn: psycopg.Connection, table: str, load_id: str) -> int:
     return row[0]
 
 
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Load the newest landed load into raw.")
+    parser.add_argument(
+        "source",
+        nargs="?",
+        default=DEFAULT_SOURCE,
+        help=f"source name, as landed by 'uv run poe land' (default: {DEFAULT_SOURCE})",
+    )
+    return parser.parse_args(argv)
+
+
 def main() -> None:
-    load_dir = latest_load_dir(SOURCE)
+    args = parse_args(sys.argv[1:])
+    load_dir = latest_load_dir(args.source)
     manifest = read_manifest(load_dir)
     load_id = manifest["load_id"]
     print(f"source: {manifest['source']}, load_id: {load_id}")
