@@ -25,6 +25,8 @@ Zpět na [[00 Start]]
 - [x] Agent – rozhovor (ne jen jedna otázka), odpověď slovně + dashboard, `uv run poe chat`
 - [x] Chatovací okno – Streamlit, dashboard vložený v iframu, `uv run poe app`
 - [x] Zkušební sada 20 otázek, `uv run poe eval` – s popisy 20/20, bez nich 17/20
+- [x] CI – `poe land` + `poe raw` + `poe build` + `poe metabase` na GitHubu (bez volání modelu)
+- [x] Zkušební sada měří i slovní verdikt tvrzení (`eval/claims.yml`) – s popisy 5/6, bez nich 1/6
 
 ## Plán projektu
 
@@ -43,16 +45,12 @@ Nad rámec plánu přibyl i rozhovor (ne jen jedna otázka) a chatovací okno se
 
 ## Právě teď
 
-Úklid po dokončení plánu + rozšíření CI, ať GitHub kontroluje raw load a dbt build, ne jen
-landing a lint.
+Plán (kroky 1–6) i dohodnutý úklid jsou hotové. Čeká se, kterou z drobností níže řešit dál.
 
 ## Drobnosti na později
 
-- [ ] **Rozhodnout o vrstvě `marts`.** ADR-0002 ji plánoval (kontrakty, plně zdokumentovaná
-  business vrstva), ale postavili jsme jen `core` a Metabase/agent čtou přímo z něj. Buď
-  `marts` dodat později (když bude potřeba `core` měnit bez rozbití dashboardů), nebo napsat
-  nové ADR, že se vrstva záměrně vynechává.
-- [ ] Zkušební sada neměří slovní závěry agenta (verdikt „ano/ne/částečně“), jen čísla ze SQL.
+- [x] Rozhodnuto o vrstvě `marts` – ADR-0007: záměrně vynechána, Metabase a agent čtou `core`
+  přímo. Revize, až bude potřeba `core` měnit bez rizika rozbití dashboardů.
 - [ ] Veřejné odkazy na dashboardy v Metabase – v pořádku jen při běhu na jednom stroji
   (ADR-0006), revidovat, kdyby appka měla být dostupná odjinud.
 - [ ] Žádné automatické testy pro `agent/app.py` ani `agent/dashboard.py`, jen ruční ověření.

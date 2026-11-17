@@ -12,3 +12,4 @@ supersede it with a new one.
 | [0004](0004-custom-agent-with-gemini.md) | Build a custom agent that writes SQL and creates Metabase dashboards | Accepted |
 | [0005](0005-conversational-agent.md) | Make the agent a conversation that answers in words and one dashboard | Accepted |
 | [0006](0006-embedded-dashboard-streamlit-ui.md) | Embed the dashboard via a Metabase public link, built with Streamlit | Accepted |
+| [0007](0007-skip-marts-layer.md) | Skip the `marts` layer; Metabase and the agent read `core` directly | Accepted |
