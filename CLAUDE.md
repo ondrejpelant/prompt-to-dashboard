@@ -71,6 +71,16 @@ docker compose exec -T postgres psql -U warehouse_admin -d warehouse -c "\dn"
 
 Ondra uses Windows with Git Bash and PowerShell. `docker compose exec` needs `-T` in Git Bash.
 
+**`uv run poe <task>` always loads `.env` and overrides any value already in the shell**
+(unlike `uv run --env-file .env`, which only fills in what isn't already set). A quick
+`export POSTGRES_PORT=...` before a poe task to point it at a throwaway container does
+**not** work – poe silently puts the real `.env` value back. This bit twice while testing
+raw-load/dbt-build/Metabase changes against an isolated container: `poe raw`/`poe build`
+quietly ran against Ondra's real warehouse instead, loading the small sample next to the
+real one and skewing `staging`'s "newest load" pick until the stray `_load_id` rows were
+deleted. To test a poe task against anything other than the real `.env`, back up `.env`,
+write a temporary one, run the task, then restore from the backup and diff to confirm.
+
 ## Conventions
 
 - Code, README, `docs/` and commit messages in **English**; `notes/` in **Czech**.

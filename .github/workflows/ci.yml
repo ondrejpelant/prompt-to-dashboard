@@ -33,3 +33,40 @@ jobs:
         run: uv run poe land contoso_10k | tee out.txt && grep -q "already landed" out.txt
       - name: Validate docker compose configuration
         run: uv run poe env && docker compose config --quiet
+
+  warehouse:
+    # Builds the real pipeline on the small sample: raw load, dbt (staging + core, with
+    # its tests), and Metabase picking up every description and key during its sync.
+    # No LLM calls here (cost and the free tier's daily quota), so the agent and the
+    # chat UI are not exercised by CI.
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - name: Land the small Contoso sample
+        run: uv run poe land contoso_10k
+      - name: Create .env and start Postgres and Metabase
+        run: uv run poe env && docker compose up -d
+      - name: Wait for Postgres to be healthy
+        run: |
+          for i in $(seq 1 30); do
+            docker compose ps postgres | grep -q healthy && exit 0
+            sleep 2
+          done
+          echo "Postgres did not become healthy in time" && exit 1
+      - name: Load raw and build staging and core with dbt
+        run: uv run poe raw contoso_10k && uv run poe build
+      - name: Wait for Metabase to be healthy
+        run: |
+          for i in $(seq 1 40); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health)
+            [ "$code" = "200" ] && exit 0
+            sleep 3
+          done
+          echo "Metabase did not become healthy in time" && exit 1
+      - name: Create a Metabase admin and API key (this container only)
+        run: uv run python -m bi.ci_setup >> "$GITHUB_ENV"
+      - name: Connect Metabase and check it sees every description and key
+        run: uv run poe metabase

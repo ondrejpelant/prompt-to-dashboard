@@ -27,7 +27,9 @@ DATABASE_NAME = "Warehouse"
 # container port, not through localhost and the port published to the host.
 WAREHOUSE_HOST = "postgres"
 WAREHOUSE_PORT = 5432
-SYNC_TIMEOUT_SECONDS = 180
+# A brand-new connection's first full sync (every table, every field) is slower than
+# the routine re-check Ondra's already-synced instance does; CI always starts fresh.
+SYNC_TIMEOUT_SECONDS = 300
 
 
 def api(method: str, path: str, body: dict | None = None) -> dict | None:
