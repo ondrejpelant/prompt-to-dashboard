@@ -1,0 +1,12 @@
+{
+  "userIgnoreFilters": [
+    "data/",
+    ".venv/",
+    ".ruff_cache/",
+    "uv.lock"
+  ],
+  "newFileLocation": "folder",
+  "newFileFolderPath": "notes",
+  "attachmentFolderPath": "notes/prilohy",
+  "alwaysUpdateLinks": true
+}

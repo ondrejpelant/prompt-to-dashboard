@@ -37,3 +37,7 @@ logs/
 .idea/
 .DS_Store
 Thumbs.db
+
+# --- Obsidian: vault settings are shared, personal UI state is not ---
+.obsidian/workspace*.json
+.obsidian/cache
