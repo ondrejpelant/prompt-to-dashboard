@@ -1,0 +1,142 @@
+{
+  "mode": "claims-without-metadata",
+  "model": "gemini-3.5-flash-lite",
+  "passed": 1,
+  "total": 6,
+  "results": [
+    {
+      "id": "revenue_falling_recent_years",
+      "question": "Net revenue has been falling in recent years - is this true?\n",
+      "expected": [
+        24495022.64722,
+        43831054.455231,
+        31639690.92344,
+        29277489.58692
+      ],
+      "missing": [],
+      "cards": [
+        {
+          "title": "Yearly Net Revenue",
+          "sql": "SELECT d.year AS year, ROUND(SUM(f.net_amount_usd), 0) AS net_revenue_usd FROM core.fct_order_lines f JOIN core.dim_date d ON f.order_date = d.date_day GROUP BY d.year ORDER BY d.year ASC"
+        }
+      ],
+      "passed": false,
+      "expected_verdict": "partly",
+      "verdict": "no",
+      "answer": "No, the claim that net revenue has been falling in recent years is not true overall. While there are fluctuations, such as a drop from $25,815,539 in 2019 to $16,366,682 in 2021, and a decrease from $43,831,054 in 2023 to $31,639,691 in 2024 and $29,277,490 in 2025, the broader long-term trend shows substantial growth from $5,678,106 in 2016."
+    },
+    {
+      "id": "online_always_faster_delivery",
+      "question": "The online store always delivers faster than physical stores - is this true?",
+      "expected": [
+        3.253541367275713
+      ],
+      "missing": [],
+      "cards": [
+        {
+          "title": "Average delivery days by sales channel",
+          "sql": "SELECT s.sales_channel AS sales_channel, ROUND(AVG(f.delivery_days), 2) AS avg_delivery_days FROM core.fct_order_lines f JOIN core.dim_store s ON f.store_key = s.store_key GROUP BY s.sales_channel ORDER BY avg_delivery_days DESC"
+        },
+        {
+          "title": "Monthly average delivery days by channel",
+          "sql": "SELECT d.year_month AS year_month, s.sales_channel AS sales_channel, ROUND(AVG(f.delivery_days), 2) AS avg_delivery_days FROM core.fct_order_lines f JOIN core.dim_store s ON f.store_key = s.store_key JOIN core.dim_date d ON f.order_date = d.date_day GROUP BY d.year_month, s.sales_channel ORDER BY d.year_month ASC"
+        }
+      ],
+      "passed": true,
+      "expected_verdict": "no",
+      "verdict": "no",
+      "answer": "No, we cannot verify this claim because the data for physical stores is completely missing. While the dashboard shows that online stores have an overall average delivery time of 3.25 days and monthly averages ranging from a high of 9.30 days in August 2016 down to 2.74 days in August 2024, there are no recorded delivery days available for physical stores to make a comparison. These figures are calculated using the net amount in USD for order lines. Therefore, we lack the necessary information regarding physical store deliveries to determine if online stores are indeed faster."
+    },
+    {
+      "id": "currencies_equal_revenue",
+      "question": "All five currencies contribute roughly equal net revenue - is this true?",
+      "expected": [
+        19568679.18030846,
+        30917764.27507472,
+        43121581.872292064,
+        18127497.74212093,
+        111862187.586711
+      ],
+      "missing": [
+        19568679.18030846,
+        30917764.27507472,
+        43121581.872292064,
+        18127497.74212093
+      ],
+      "cards": [
+        {
+          "title": "Net Revenue by Currency",
+          "sql": "SELECT currency_code, round(sum(net_amount_usd), 0) AS net_revenue_usd FROM core.fct_order_lines GROUP BY currency_code ORDER BY net_revenue_usd DESC"
+        }
+      ],
+      "passed": false,
+      "expected_verdict": "no",
+      "verdict": "no",
+      "answer": "No, the claim is not true because the five currencies contribute very different amounts to the total net revenue in USD. The US Dollar leads significantly with 111,862,188 USD, followed by the Euro at 47,300,051 USD. Meanwhile, the Canadian Dollar and British Pound make more moderate contributions of 23,242,028 USD and 23,049,533 USD respectively. Finally, the Australian Dollar contributes the least with 13,360,673 USD."
+    },
+    {
+      "id": "stores_open_since_before_2010",
+      "question": "Every store that is still open today has been open since before 2010 - is this true?",
+      "expected": [
+        14.0,
+        58.0
+      ],
+      "missing": [
+        14.0,
+        58.0
+      ],
+      "cards": [
+        {
+          "title": "Open Stores and their Open Dates",
+          "sql": "SELECT store_name, sales_channel, country_name, open_date FROM core.dim_store WHERE status = 'open' OR close_date IS NULL ORDER BY open_date ASC"
+        }
+      ],
+      "passed": false,
+      "expected_verdict": "no",
+      "verdict": "no",
+      "answer": "No, that is not true. While several currently open stores started operating between 2005 and 2009, many other currently open stores began operations in 2010 or later, with open dates extending well past 2010 into years like 2012, 2013, and 2014. Please note that the provided data only shows the first 40 rows of currently open stores, meaning there may be additional stores not visible in this list."
+    },
+    {
+      "id": "discount_never_exceeds_15pct",
+      "question": "Discounts never exceed 15% of the gross price on any order line - is this true?",
+      "expected": [
+        0.14
+      ],
+      "missing": [],
+      "cards": [
+        {
+          "title": "Order lines exceeding 15% discount",
+          "sql": "SELECT count(*) AS exceeding_lines FROM core.fct_order_lines WHERE discount_amount_usd > 0.15 * gross_amount_usd"
+        },
+        {
+          "title": "Maximum discount percentage observed",
+          "sql": "SELECT round(max(discount_amount_usd / nullif(gross_amount_usd, 0))::numeric, 4) AS max_discount_ratio FROM core.fct_order_lines"
+        }
+      ],
+      "passed": false,
+      "expected_verdict": "yes",
+      "verdict": "no",
+      "answer": "No, this claim is true, as discounts never exceed 15% of the gross price on any order line. The highest discount percentage observed across all order lines is 14.00%. Furthermore, there are zero order lines where the discount amount exceeds 15% of the gross amount. These findings are based on an analysis of net revenue and discount metrics in USD."
+    },
+    {
+      "id": "every_country_has_orders",
+      "question": "Customers in every country have placed at least one order - is this true?",
+      "expected": [
+        8.0
+      ],
+      "missing": [
+        8.0
+      ],
+      "cards": [
+        {
+          "title": "Countries with and without orders",
+          "sql": "SELECT c.country_name, count(DISTINCT c.customer_key) as total_customers, count(o.order_key) as total_orders FROM core.dim_customer c LEFT JOIN core.fct_order_lines o ON c.customer_key = o.customer_key GROUP BY c.country_name ORDER BY total_orders ASC"
+        }
+      ],
+      "passed": false,
+      "expected_verdict": "yes",
+      "verdict": "no",
+      "answer": "No, that is not true, as the available data only includes a specific subset of countries where customers have placed orders. The results show a total of eight countries—Italy, France, Netherlands, Australia, United Kingdom, Canada, Germany, and the United States—each having both customers and orders recorded. For example, Italy has 5,036 customers and 6,297 orders, while the United States has 45,183 customers and 113,614 orders. However, this list does not encompass every country globally, meaning there are other countries without any recorded orders in this dataset."
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+# Claim-verification questions: the kind a user actually asks ("is it true that ...").
+#
+# Unlike questions.yml, these check the WORDS of the agent's answer, not just its SQL:
+# verdict is the correct yes/no/partly, which the conclusion must open with (see
+# CONCLUSION_INSTRUCTION in agent/planner.py). reference_sql still grounds the claim in a
+# real number, checked exactly like in questions.yml.
+
+claims:
+  - id: revenue_falling_recent_years
+    question: >
+      Net revenue has been falling in recent years - is this true?
+    verdict: partly
+    tests: True only for the last two years; it grew for years before that.
+    reference_sql: >
+      select sum(net_amount_usd) from core.fct_order_lines
+      where extract(year from order_date) between 2022 and 2025
+      group by extract(year from order_date)
+
+  - id: online_always_faster_delivery
+    question: The online store always delivers faster than physical stores - is this true?
+    verdict: "no"
+    tests: Physical stores hand goods over same-day; online takes 1-17 days - online is slower.
+    reference_sql: >
+      select avg(delivery_days) filter (where line_number = 0)
+      from core.fct_order_lines
+
+  - id: currencies_equal_revenue
+    question: All five currencies contribute roughly equal net revenue - is this true?
+    verdict: "no"
+    tests: >
+      USD alone is far larger than any other currency. Compared in a common currency
+      (USD) - local-currency amounts aren't comparable across currencies to begin with.
+    reference_sql: select sum(net_amount_usd) from core.fct_order_lines group by currency_code
+
+  - id: stores_open_since_before_2010
+    question: Every store that is still open today has been open since before 2010 - is this true?
+    verdict: "no"
+    tests: Most active stores (44 of 58) opened in 2010 or later.
+    reference_sql: >
+      select count(*) filter (where open_date < '2010-01-01'), count(*)
+      from core.dim_store where is_current_version and status = 'Active'
+
+  - id: discount_never_exceeds_15pct
+    question: Discounts never exceed 15% of the gross price on any order line - is this true?
+    verdict: "yes"
+    tests: The highest per-line discount rate is 14%.
+    reference_sql: >
+      select max(discount_amount_usd / nullif(gross_amount_usd, 0))
+      from core.fct_order_lines where gross_amount_usd > 0
+
+  - id: every_country_has_orders
+    question: Customers in every country have placed at least one order - is this true?
+    verdict: "yes"
+    tests: All 8 customer countries appear among orders.
+    reference_sql: >
+      select count(distinct c.country_name)
+      from core.fct_order_lines f join core.dim_customer c using (customer_key)

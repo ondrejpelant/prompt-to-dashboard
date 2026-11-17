@@ -1,0 +1,142 @@
+{
+  "mode": "claims-with-metadata",
+  "model": "gemini-3.5-flash-lite",
+  "passed": 5,
+  "total": 6,
+  "results": [
+    {
+      "id": "revenue_falling_recent_years",
+      "question": "Net revenue has been falling in recent years - is this true?\n",
+      "expected": [
+        24495022.64722,
+        43831054.455231,
+        31639690.92344,
+        29277489.58692
+      ],
+      "missing": [],
+      "cards": [
+        {
+          "title": "Net Revenue by Year",
+          "sql": "select t.year as year, round(sum(f.net_amount_usd), 0) as net_revenue_usd from core.fct_order_lines f join core.dim_date t on f.order_date = t.date_day group by t.year order by t.year asc"
+        }
+      ],
+      "passed": true,
+      "expected_verdict": "partly",
+      "verdict": "partly",
+      "answer": "Partly, the claim is not entirely accurate because net revenue has experienced significant growth over the longer term despite dropping in a few recent periods. Annual net revenue in USD rose from 5,678,106 in 2016 to a peak of 43,831,054 in 2023, representing a substantial overall increase. However, the claim holds true for the very latest years, as net revenue fell from 43,831,054 in 2023 down to 31,639,691 in 2024, and further decreased to 29,277,490 in 2025."
+    },
+    {
+      "id": "online_always_faster_delivery",
+      "question": "The online store always delivers faster than physical stores - is this true?",
+      "expected": [
+        3.253541367275713
+      ],
+      "missing": [],
+      "cards": [
+        {
+          "title": "Average Delivery Time by Sales Channel",
+          "sql": "select t1.sales_channel as sales_channel, round(avg(f.delivery_days) filter (where f.line_number = 0), 2) as average_online_delivery_days from core.fct_order_lines f inner join core.dim_store t1 on f.store_key = t1.store_key group by t1.sales_channel order by average_online_delivery_days desc"
+        }
+      ],
+      "passed": true,
+      "expected_verdict": "no",
+      "verdict": "no",
+      "answer": "No, the claim is not true because online orders actually take longer to deliver than purchases made at physical stores. Physical stores hand goods over immediately on the order date, resulting in a delivery time of 0 days. In contrast, the online store takes an average of 3.25 days to deliver orders."
+    },
+    {
+      "id": "currencies_equal_revenue",
+      "question": "All five currencies contribute roughly equal net revenue - is this true?",
+      "expected": [
+        13360672.607556,
+        23242027.537046,
+        47300050.598888,
+        23049533.378403,
+        111862187.586711
+      ],
+      "missing": [],
+      "cards": [
+        {
+          "title": "Net Revenue by Currency (USD)",
+          "sql": "SELECT t1.currency_code AS currency, round(sum(t1.net_amount_usd), 0) AS net_revenue_usd FROM core.fct_order_lines AS t1 GROUP BY 1 ORDER BY 2 DESC"
+        }
+      ],
+      "passed": true,
+      "expected_verdict": "no",
+      "verdict": "no",
+      "answer": "No, the claim that all five currencies contribute roughly equal net revenue is false. United States Dollars lead the contributions by far with 111,862,188 USD in net revenue, followed by Euros at 47,300,051 USD. Canadian Dollars and British Pounds generate much lower amounts of 23,242,028 USD and 23,049,533 USD respectively. Australian Dollars contribute the least among the group, bringing in 13,360,673 USD in net revenue."
+    },
+    {
+      "id": "stores_open_since_before_2010",
+      "question": "Every store that is still open today has been open since before 2010 - is this true?",
+      "expected": [
+        14.0,
+        58.0
+      ],
+      "missing": [],
+      "cards": [
+        {
+          "title": "Active Stores and their Open Dates",
+          "sql": "select store_code, store_name, sales_channel, country_name, open_date from core.dim_store where is_current_version = true and status = 'Active' order by open_date asc"
+        },
+        {
+          "title": "Active Stores by Open Year",
+          "sql": "select extract(year from open_date)::integer as open_year, count(distinct store_code) as store_count from core.dim_store where is_current_version = true and status = 'Active' group by 1 order by 1 asc"
+        }
+      ],
+      "passed": true,
+      "expected_verdict": "no",
+      "verdict": "no",
+      "answer": "No, the claim that every currently active store has been open since before 2010 is not true. While several active stores did open prior to 2010—such as 2 stores in 2005, 2 stores in 2007, 6 stores in 2008, and 4 stores in 2009—many others opened in 2010 or later. Specifically, active stores opened in subsequent years include 11 stores in 2010, 10 stores in 2012, 2 stores in 2013, 4 stores in 2014, 12 stores in 2015, 4 stores in 2018, and 1 store in 2019."
+    },
+    {
+      "id": "discount_never_exceeds_15pct",
+      "question": "Discounts never exceed 15% of the gross price on any order line - is this true?",
+      "expected": [
+        0.14
+      ],
+      "missing": [],
+      "cards": [
+        {
+          "title": "Maximum Discount Rate on Any Order Line",
+          "sql": "select round(max(discount_amount_usd / nullif(gross_amount_usd, 0))::numeric, 4) as max_discount_rate from core.fct_order_lines"
+        },
+        {
+          "title": "Distribution of Order Lines by Discount Rate Tier",
+          "sql": "select case when discount_amount_usd / nullif(gross_amount_usd, 0) <= 0.05 then '0-5%' when discount_amount_usd / nullif(gross_amount_usd, 0) <= 0.10 then '5-10%' when discount_amount_usd / nullif(gross_amount_usd, 0) <= 0.15 then '10-15%' else 'Over 15%' end as discount_tier, count(*) as order_line_count from core.fct_order_lines group by 1 order by 1"
+        },
+        {
+          "title": "Top Order Lines with Highest Discount Rates",
+          "sql": "select order_key, line_number, round(gross_amount_usd, 2) as gross_amount_usd, round(discount_amount_usd, 2) as discount_amount_usd, round((discount_amount_usd / nullif(gross_amount_usd, 0))::numeric, 4) as discount_rate from core.fct_order_lines order by discount_rate desc limit 10"
+        }
+      ],
+      "passed": true,
+      "expected_verdict": "yes",
+      "verdict": "yes",
+      "answer": "Yes, this is true. The highest discount rate found across all order lines is 14.00%, which never exceeds the 15% threshold. This is supported by the distribution of order lines by discount rate brackets, where the highest bracket shown is 10-15% (containing 69,290 order lines), with no tiers reported above 15%."
+    },
+    {
+      "id": "every_country_has_orders",
+      "question": "Customers in every country have placed at least one order - is this true?",
+      "expected": [
+        8.0
+      ],
+      "missing": [
+        8.0
+      ],
+      "cards": [
+        {
+          "title": "Customers and Revenue by Country",
+          "sql": "SELECT dc.country_name AS country, count(DISTINCT dc.customer_key) AS registered_customers, count(DISTINCT f.customer_key) AS buying_customers, round(sum(f.net_amount_usd), 0) AS net_revenue_usd FROM core.dim_customer dc LEFT JOIN core.fct_order_lines f ON dc.customer_key = f.customer_key GROUP BY dc.country_name ORDER BY net_revenue_usd DESC"
+        },
+        {
+          "title": "Unbuying Customers by Country",
+          "sql": "SELECT dc.country_name AS country, count(dc.customer_key) AS unbuying_customer_count FROM core.dim_customer dc WHERE NOT EXISTS (SELECT 1 FROM core.fct_order_lines f WHERE f.customer_key = dc.customer_key) GROUP BY dc.country_name ORDER BY unbuying_customer_count DESC"
+        }
+      ],
+      "passed": false,
+      "expected_verdict": "yes",
+      "verdict": "yes",
+      "answer": "Yes, customers in every listed country have placed at least one order. Across all eight countries, the number of buying customers is greater than zero, ranging from 1,842 buying customers in Italy out of 5,036 registered customers to 24,829 buying customers in the United States out of 45,183 registered customers. Conversely, the data also shows that every country has unbuying customers who have never placed an order, such as 20,354 in the United States and 2,481 in the Netherlands."
+    }
+  ]
+}
