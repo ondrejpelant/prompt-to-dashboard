@@ -6,6 +6,9 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
+    "dagster>=1.13.30",
+    "dagster-dbt>=0.29.30",
+    "dagster-webserver>=1.13.30",
     "dbt-core>=1.10,<2",
     "dbt-postgres>=1.9,<2",
     "google-genai>=3.3.0",
@@ -100,6 +103,14 @@ envfile = ".env"
 # PYTHONPATH: "streamlit run" does not add the repo root to sys.path the way
 # "python -m" does, so the agent/bi packages would not be importable without it.
 env = { PYTHONUTF8 = "1", PYTHONPATH = "." }
+
+[tool.poe.tasks.dagster]
+help = "Open the orchestration UI: the whole pipeline as one asset graph (no schedule)"
+cmd = "dagster dev -f orchestration/definitions.py"
+envfile = ".env"
+# PYTHONPATH: Dagster loads the file by path, not as "python -m", so the repo root
+# would not otherwise be on sys.path for the agent/bi/ingestion imports in it.
+env = { PYTHONPATH = "." }
 
 [tool.poe.tasks.eval]
 help = "Measure the agent on the evaluation questions (add --no-metadata for the baseline)"

@@ -53,7 +53,7 @@ Everything runs locally and costs nothing.
 | Warehouse | PostgreSQL 17 | ✅ container |
 | Transformations, tests, docs | dbt-core | ✅ staging + core |
 | Metrics and glossary | Plain YAML next to dbt (`dbt/metadata/`) | ✅ |
-| Orchestration | Dagster | planned |
+| Orchestration | Dagster, asset graph only ([ADR-0008](docs/adr/0008-orchestration-with-dagster.md)) | ✅ `uv run poe dagster` |
 | BI | Metabase (open source) | ✅ container, read-only role |
 | LLM agent | Gemini API ([ADR-0004](docs/adr/0004-custom-agent-with-gemini.md)–[0006](docs/adr/0006-embedded-dashboard-streamlit-ui.md)) | ✅ chat UI, `uv run poe app` |
 | Evaluation | 20 questions, reference SQL, with/without metadata | ✅ `uv run poe eval` |
@@ -91,6 +91,9 @@ uv run poe metabase # connects Metabase to the warehouse (needs a Metabase admin
 uv run poe app      # opens the chat UI (needs a Gemini API key in .env)
 ```
 
+`uv run poe dagster` runs `raw` → `build` → `metabase` as one Dagster asset graph instead of
+one task at a time - open the UI it prints and materialize everything with one click.
+
 Run `uv run poe` to list all tasks. They are defined in [`pyproject.toml`](pyproject.toml).
 
 ## Repository layout
@@ -121,7 +124,8 @@ Run `uv run poe` to list all tasks. They are defined in [`pyproject.toml`](pypro
 - [x] **7 – LLM agent** – chat UI, answers in words with a dashboard embedded live
       ([ADR-0004](docs/adr/0004-custom-agent-with-gemini.md)–[0006](docs/adr/0006-embedded-dashboard-streamlit-ui.md))
 - [x] **8 – Evaluation** – 20 questions, reference SQL, measured with and without metadata
-- [ ] **9 – Orchestration and operations** – Dagster, freshness checks, docs site
+- [x] **9 – Orchestration** – the pipeline as one Dagster asset graph, no schedule yet
+      ([ADR-0008](docs/adr/0008-orchestration-with-dagster.md))
 
 ## Data
 

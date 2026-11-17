@@ -27,6 +27,8 @@ Zpět na [[00 Start]]
 - [x] Zkušební sada 20 otázek, `uv run poe eval` – s popisy 20/20, bez nich 17/20
 - [x] CI – `poe land` + `poe raw` + `poe build` + `poe metabase` na GitHubu (bez volání modelu)
 - [x] Zkušební sada měří i slovní verdikt tvrzení (`eval/claims.yml`) – s popisy 5/6, bez nich 1/6
+- [x] Orchestrace – celý pipeline (land → raw → dbt → Metabase sync) jako jeden graf v Dagsteru,
+  `uv run poe dagster`, ADR-0008
 
 ## Plán projektu
 
@@ -54,4 +56,3 @@ Plán (kroky 1–6) i dohodnutý úklid jsou hotové. Čeká se, kterou z drobno
 - [ ] Veřejné odkazy na dashboardy v Metabase – v pořádku jen při běhu na jednom stroji
   (ADR-0006), revidovat, kdyby appka měla být dostupná odjinud.
 - [ ] Žádné automatické testy pro `agent/app.py` ani `agent/dashboard.py`, jen ruční ověření.
-- [ ] Orchestrace (krok 9 v `README.md`) – Dagster zatím jen placeholder ve složce.

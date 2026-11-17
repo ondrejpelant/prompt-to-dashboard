@@ -50,6 +50,7 @@ Details and what's still open: `notes/Stav a další kroky.md`.
 | Transformations | dbt-core 1.x (`dbt/`: staging, core, metrics, glossary) |
 | BI | Metabase open source in Docker, read-only role `bi_reader` |
 | Agent | Custom agent on the Gemini API (`agent/`); ADR-0004/0005/0006 |
+| Orchestration | Dagster asset graph, no schedule (`orchestration/`); ADR-0008 |
 | Quality | ruff, pre-commit, GitHub Actions (`.github/workflows/ci.yml`) |
 
 Folders: `ingestion/`, `dbt/`, `orchestration/`, `bi/`, `agent/`, `eval/`, `infra/`,

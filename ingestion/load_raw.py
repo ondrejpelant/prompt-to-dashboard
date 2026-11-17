@@ -96,9 +96,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main() -> None:
-    args = parse_args(sys.argv[1:])
-    load_dir = latest_load_dir(args.source)
+def load(source: str) -> None:
+    load_dir = latest_load_dir(source)
     manifest = read_manifest(load_dir)
     load_id = manifest["load_id"]
     print(f"source: {manifest['source']}, load_id: {load_id}")
@@ -128,6 +127,10 @@ def main() -> None:
                 )
             status = "already loaded, skipped" if already_loaded else "loaded"
             print(f"  {RAW_SCHEMA}.{table}: {rows} rows OK ({status})")
+
+
+def main() -> None:
+    load(parse_args(sys.argv[1:]).source)
 
 
 if __name__ == "__main__":
