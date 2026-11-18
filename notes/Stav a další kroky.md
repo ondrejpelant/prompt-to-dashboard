@@ -47,12 +47,13 @@ Nad rámec plánu přibyl i rozhovor (ne jen jedna otázka) a chatovací okno se
 
 ## Právě teď
 
-Plán (kroky 1–6) i dohodnutý úklid jsou hotové. Čeká se, kterou z drobností níže řešit dál.
+Plán (kroky 1–6) i všechny dřívější drobnosti jsou hotové. Čeká se na další zadání.
 
-## Drobnosti na později
+## Vyřešené drobnosti
 
 - [x] Rozhodnuto o vrstvě `marts` – ADR-0007: záměrně vynechána, Metabase a agent čtou `core`
   přímo. Revize, až bude potřeba `core` měnit bez rizika rozbití dashboardů.
-- [ ] Veřejné odkazy na dashboardy v Metabase – v pořádku jen při běhu na jednom stroji
-  (ADR-0006), revidovat, kdyby appka měla být dostupná odjinud.
-- [ ] Žádné automatické testy pro `agent/app.py` ani `agent/dashboard.py`, jen ruční ověření.
+- [x] Veřejné odkazy na dashboardy nahrazeny podepsanými tokeny s platností 10 minut (ADR-0009).
+  Žádný starý veřejný odkaz už nefunguje (public sharing vypnuté).
+- [x] Automatické testy pro `agent/dashboard.py` a `agent/app.py` – `uv run poe test` (pytest),
+  19 testů, žádná živá databáze ani model (Metabase API a `Conversation` jsou ve testech mock).
