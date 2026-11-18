@@ -95,8 +95,14 @@ description, a glossary entry or a metric definition, and each becomes an evalua
 1. What do `customer.StartDT` / `EndDT` mean? Spans range from 0 days to 66 years and 31,653
    customers have an `EndDT` in the past, yet no order falls outside the window. Not exposed
    until understood.
-2. Confirm the USD base currency (S1) against SQLBI's generator documentation.
-3. Use the shipped `date.csv` as the date dimension, or generate one in dbt?
+
+Resolved since:
+
+- Confirm the USD base currency (S1) against SQLBI's generator documentation. Confirmed in
+  practice during modeling (identical `UnitPrice` across currencies for the same product and
+  day); treated as settled fact throughout `core`, the metrics and the glossary.
+- Use the shipped `date.csv` as the date dimension, or generate one in dbt? Used the shipped
+  file - `core.dim_date` is built from it via `stg_date`.
 
 ## Small variant: `contoso_10k`
 
