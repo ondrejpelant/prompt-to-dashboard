@@ -70,4 +70,4 @@ jobs:
       - name: Create a Metabase admin and API key (this container only)
         run: uv run --env-file .env python -m bi.ci_setup >> "$GITHUB_ENV"
       - name: Connect Metabase and check it sees every description and key
-        run: uv run poe metabase
+        run: uv run --env-file .env python -m bi.sync_metabase
