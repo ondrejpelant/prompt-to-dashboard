@@ -68,6 +68,6 @@ jobs:
           done
           echo "Metabase did not become healthy in time" && exit 1
       - name: Create a Metabase admin and API key (this container only)
-        run: uv run python -m bi.ci_setup >> "$GITHUB_ENV"
+        run: uv run --env-file .env python -m bi.ci_setup >> "$GITHUB_ENV"
       - name: Connect Metabase and check it sees every description and key
         run: uv run poe metabase
